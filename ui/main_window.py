@@ -508,14 +508,31 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.detection_btn)
         sidebar_layout.addWidget(self.change_detection_btn)
         
+        # 添加分隔线
+        separator4 = QFrame()
+        separator4.setFrameShape(QFrame.HLine)
+        separator4.setFrameShadow(QFrame.Sunken)
+        separator4.setObjectName("separator")
+        sidebar_layout.addWidget(separator4)
+        
+        # 样本制作按钮
+        self.sample_making_btn = self.create_menu_button("样本制作")
+        sidebar_layout.addWidget(self.sample_making_btn)
+        
+        # 添加分隔线
+        separator5 = QFrame()
+        separator5.setFrameShape(QFrame.HLine)
+        separator5.setFrameShadow(QFrame.Sunken)
+        separator5.setObjectName("separator")
+        sidebar_layout.addWidget(separator5)
+        
         # 添加弹性空间
         sidebar_layout.addStretch()
         
         # 添加操作按钮 (设置按钮)
-        settings_btn = QPushButton("设置")
-        settings_btn.setObjectName("operation_btn")
-        settings_btn.clicked.connect(lambda: self.select_button(None, 8))
-        sidebar_layout.addWidget(settings_btn)
+        self.settings_btn = self.create_menu_button("设置")
+        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 9))
+        sidebar_layout.addWidget(self.settings_btn)
         sidebar_layout.addSpacing(10)
         
         # 创建堆叠部件容器，用于显示不同的内容页面
@@ -530,6 +547,7 @@ class MainWindow(QMainWindow):
         self.segment_page = self.create_segment_page()
         self.detection_page = self.create_detection_page()
         self.change_detection_page = self.create_change_detection_page()
+        self.sample_making_page = self.create_sample_making_page()
         self.setting_page = self.create_setting_page()
         
         # 将页面添加到堆叠部件
@@ -541,6 +559,7 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.segment_page)
         self.content_stack.addWidget(self.detection_page)
         self.content_stack.addWidget(self.change_detection_page)
+        self.content_stack.addWidget(self.sample_making_page)
         self.content_stack.addWidget(self.setting_page)
         
         # 将各部分添加到主布局
@@ -561,6 +580,7 @@ class MainWindow(QMainWindow):
         self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 5))
         self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 6))
         self.change_detection_btn.clicked.connect(lambda: self.select_button(self.change_detection_btn, 7))
+        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 8))
         
         # 设置默认选中按钮
         self.home_btn.setChecked(True)
@@ -584,7 +604,8 @@ class MainWindow(QMainWindow):
         """选择按钮，并切换对应的功能页面"""
         # 重置所有按钮状态
         for btn in [self.home_btn, self.data_btn, self.preprocess_btn, self.fishnet_btn,
-                   self.scene_btn, self.segment_btn, self.detection_btn, self.change_detection_btn]:
+                   self.scene_btn, self.segment_btn, self.detection_btn, self.change_detection_btn, 
+                   self.sample_making_btn, self.settings_btn]:
             btn.setChecked(False)
         
         # 设置当前按钮为选中状态（如果不是None）
@@ -1124,6 +1145,61 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(process_btn)
         
         export_btn = QPushButton("导出检测结果")
+        export_btn.setObjectName("operation_btn")
+        export_btn.setFixedWidth(180)
+        export_btn.setFixedHeight(40)
+        button_layout.addWidget(export_btn)
+        
+        button_layout.addStretch()  # 添加弹性空间
+        content_layout.addWidget(button_container)
+        
+        layout.addWidget(content_frame)
+        layout.addStretch()
+        
+        return page
+    
+    def create_sample_making_page(self):
+        """创建样本制作页面"""
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        
+        title = QLabel("样本制作")
+        title.setObjectName("page_title")
+        layout.addWidget(title)
+        
+        subtitle = QLabel("对遥感影像进行批量化样本制作，用于训练和验证模型")
+        subtitle.setWordWrap(True)
+        subtitle.setObjectName("subtitle")
+        layout.addWidget(subtitle)
+        
+        content_frame = QFrame()
+        content_frame.setObjectName("content_frame")
+        content_layout = QVBoxLayout(content_frame)
+        
+        section_title = QLabel("操作区")
+        section_title.setObjectName("section_title")
+        content_layout.addWidget(section_title)
+        
+        # 创建按钮容器，水平布局
+        button_container = QFrame()
+        button_container.setObjectName("operation_container")
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 10, 0, 10)
+        button_layout.setSpacing(15)
+        
+        import_btn = QPushButton("导入遥感影像")
+        import_btn.setObjectName("operation_btn")
+        import_btn.setFixedWidth(180)
+        import_btn.setFixedHeight(40)
+        button_layout.addWidget(import_btn)
+        
+        process_btn = QPushButton("开始样本制作")
+        process_btn.setObjectName("operation_btn")
+        process_btn.setFixedWidth(180)
+        process_btn.setFixedHeight(40)
+        button_layout.addWidget(process_btn)
+        
+        export_btn = QPushButton("导出样本结果")
         export_btn.setObjectName("operation_btn")
         export_btn.setFixedWidth(180)
         export_btn.setFixedHeight(40)
