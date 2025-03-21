@@ -1167,7 +1167,7 @@ class MainWindow(QMainWindow):
         title.setObjectName("page_title")
         layout.addWidget(title)
         
-        subtitle = QLabel("对遥感影像进行批量化样本制作，用于训练和验证模型")
+        subtitle = QLabel("进行小批量样本制作，便于您的后续实验")
         subtitle.setWordWrap(True)
         subtitle.setObjectName("subtitle")
         layout.addWidget(subtitle)
@@ -1187,19 +1187,19 @@ class MainWindow(QMainWindow):
         button_layout.setContentsMargins(0, 10, 0, 10)
         button_layout.setSpacing(15)
         
-        import_btn = QPushButton("导入遥感影像")
+        import_btn = QPushButton("导入遥感影像数据集")
         import_btn.setObjectName("operation_btn")
         import_btn.setFixedWidth(180)
         import_btn.setFixedHeight(40)
         button_layout.addWidget(import_btn)
         
-        process_btn = QPushButton("开始样本制作")
+        process_btn = QPushButton("开始批量样本制作")
         process_btn.setObjectName("operation_btn")
         process_btn.setFixedWidth(180)
         process_btn.setFixedHeight(40)
         button_layout.addWidget(process_btn)
         
-        export_btn = QPushButton("导出样本结果")
+        export_btn = QPushButton("导出样本")
         export_btn.setObjectName("operation_btn")
         export_btn.setFixedWidth(180)
         export_btn.setFixedHeight(40)
