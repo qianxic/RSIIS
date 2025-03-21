@@ -21,9 +21,3 @@ gdal>=3.4.0
 scikit-learn>=1.1.0
 tensorflow>=2.10.0
 torch>=1.13.0
-
-   # 对于Windows用户，可能需要从非官方渠道安装GDAL:
-   # pip install GDAL-3.4.3-cp39-cp39-win_amd64.whl
-   # 
-   # 对于Linux用户，通常需要先安装系统库:
-   # sudo apt-get install libgdal-dev
