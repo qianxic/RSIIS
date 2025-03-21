@@ -2,6 +2,7 @@
 PySide6>=6.5.0
 PySide6-Addons>=6.5.0
 PySide6-Essentials>=6.5.0
+qt-material>=2.12  # UI主题支持
 
 
 # 科学计算和数据处理
@@ -27,6 +28,16 @@ gdal>=3.4.0
 scikit-learn>=1.1.0
 tensorflow>=2.10.0
 torch>=1.13.0
+
+
+
+# 辅助工具
+tqdm>=4.64.0  # 进度条
+matplotlib>=3.5.0  # 图表绘制
+seaborn>=0.12.0  # 数据可视化增强
+
+# 开发工具
+pytest>=7.0.0  # 测试框架
 
 
 

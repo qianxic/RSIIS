@@ -2,6 +2,7 @@ import sys
 import os
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QCoreApplication, Qt
+# 使用原始的主窗口
 from ui.main_window import MainWindow
 
 # 设置Qt插件路径
