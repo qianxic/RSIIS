@@ -3,6 +3,7 @@ PySide6>=6.5.0
 PySide6-Addons>=6.5.0
 PySide6-Essentials>=6.5.0
 
+
 # 科学计算和数据处理
 numpy>=1.22.0
 pandas>=1.4.0
