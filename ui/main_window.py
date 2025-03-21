@@ -69,7 +69,8 @@ class MainWindow(QMainWindow):
                 text-align: left;
                 border-radius: 8px;
                 font-family: "Microsoft YaHei", "微软雅黑", "SimHei", "黑体", Arial, sans-serif;
-                font-size: 11pt;
+                font-size: 12pt;
+                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: rgba(180, 180, 180, 0.4);
@@ -197,7 +198,7 @@ class MainWindow(QMainWindow):
         title_layout = QVBoxLayout(title_container)
         title_layout.setContentsMargins(0, 0, 0, 0)
         
-        title_label = QLabel("遥感影像智能解译系统")
+        title_label = QLabel("RSIIS")
         title_label.setObjectName("title")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setMinimumHeight(80)  # 减小标题高度
@@ -274,6 +275,13 @@ class MainWindow(QMainWindow):
         button = QPushButton(text)
         button.setCheckable(True)
         button.setMinimumHeight(40)
+        
+        # 设置更大更粗的字体
+        font = QFont()
+        font.setPointSize(12)  # 增加字体大小，原来可能是11pt
+        font.setBold(True)     # 设置字体为粗体
+        button.setFont(font)
+        
         return button
     
     def select_button(self, button, page_index):
@@ -294,13 +302,9 @@ class MainWindow(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         
-        title = QLabel("主界面")
+        title = QLabel("遥感影像智能解译系统")
         title.setObjectName("page_title")
         layout.addWidget(title)
-        
-        subtitle = QLabel("欢迎使用遥感影像智能解译系统")
-        subtitle.setWordWrap(True)
-        layout.addWidget(subtitle)
         
         content_frame = QFrame()
         content_frame.setObjectName("content_frame")
