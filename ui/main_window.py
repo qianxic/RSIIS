@@ -1289,7 +1289,7 @@ class MainWindow(QMainWindow):
         scroll_layout.setSpacing(20)  # 增加图片之间的间距
         
         # 1. 场景分类图片及说明
-        section_title1 = QLabel("场景分类功能")
+        section_title1 = QLabel("场景分类")
         section_title1.setObjectName("section_title")
         scroll_layout.addWidget(section_title1)
         
@@ -1298,7 +1298,7 @@ class MainWindow(QMainWindow):
         img_label1 = self.add_clickable_image(scroll_layout, image_path1, width=700)
         
         # 添加场景分类说明 (使用SelectableLabel使文本可选)
-        class_desc_text = "场景分类功能对遥感影像进行整体分类，识别影像所属场景类别。本系统采用深度学习模型进行特征提取和分类，支持多达45种常见地物场景类型的识别，可应用于地理国情监测、城市规划等领域。"
+        class_desc_text = "场景分类对遥感影像进行整体分类，识别影像所属场景类别。本系统采用深度学习模型进行特征提取和分类，支持多达45种常见地物场景类型的识别，可应用于地理国情监测、城市规划等领域。"
         class_desc = SelectableLabel(class_desc_text)
         class_desc.setWordWrap(True)
         class_desc.setObjectName("desc_text")
@@ -1313,7 +1313,7 @@ class MainWindow(QMainWindow):
         scroll_layout.addWidget(separator1)
         
         # 2. 语义分割图片及说明
-        section_title2 = QLabel("语义分割功能")
+        section_title2 = QLabel("语义分割")
         section_title2.setObjectName("section_title")
         scroll_layout.addWidget(section_title2)
         
@@ -1322,7 +1322,7 @@ class MainWindow(QMainWindow):
         img_label2 = self.add_clickable_image(scroll_layout, image_path2, width=700)
         
         # 添加语义分割说明 (使用SelectableLabel使文本可选)
-        seg_desc_text = "语义分割功能基于DeepLab模型，对遥感影像进行像素级分类，可识别地物类型并生成分类图。该功能适用于土地覆盖分类、变化检测等应用场景。系统支持多种预训练模型和自定义训练。"
+        seg_desc_text = "语义分割基于DeepLab模型，对遥感影像进行像素级分类，可识别地物类型并生成分类图。该功能适用于土地覆盖分类、变化检测等应用场景。系统支持多种预训练模型和自定义训练。"
         seg_desc = SelectableLabel(seg_desc_text)
         seg_desc.setWordWrap(True)
         seg_desc.setObjectName("desc_text")
@@ -1337,7 +1337,7 @@ class MainWindow(QMainWindow):
         scroll_layout.addWidget(separator2)
         
         # 3. 目标检测图片及说明
-        section_title3 = QLabel("目标检测功能")
+        section_title3 = QLabel("目标检测")
         section_title3.setObjectName("section_title")
         scroll_layout.addWidget(section_title3)
         
@@ -1346,7 +1346,7 @@ class MainWindow(QMainWindow):
         img_label3 = self.add_clickable_image(scroll_layout, image_path3, width=700)
         
         # 添加目标检测说明 (使用SelectableLabel使文本可选)
-        det_desc_text = "目标检测功能基于YOLO系列模型，能够识别并定位遥感影像中的特定目标，如建筑物、车辆、飞机等，并提供位置信息和置信度。系统支持多尺度目标检测和实时推理，适用于军事侦察、灾害评估等应用场景。"
+        det_desc_text = "目标检测基于YOLO系列模型，能够识别并定位遥感影像中的特定目标，如建筑物、车辆、飞机等，并提供位置信息和置信度。系统支持多尺度目标检测和实时推理，适用于军事侦察、灾害评估等应用场景。"
         det_desc = SelectableLabel(det_desc_text)
         det_desc.setWordWrap(True)
         det_desc.setObjectName("desc_text")
