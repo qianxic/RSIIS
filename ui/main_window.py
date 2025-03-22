@@ -556,7 +556,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(separator4)
         
         # 样本制作按钮
-        self.sample_making_btn = self.create_menu_button("样本制作")
+        self.sample_making_btn = self.create_menu_button("批量影像解译")
         sidebar_layout.addWidget(self.sample_making_btn)
         
         # 添加分隔线
@@ -694,7 +694,7 @@ class MainWindow(QMainWindow):
         section_title.setObjectName("section_title")
         intro_layout.addWidget(section_title)
         
-        desc = SelectableLabel("本系统提供遥感影像智能解译功能，包含数据获取、预处理、渔网分割、场景分类、语义分割、目标检测和样本制作等多种功能模块。")
+        desc = SelectableLabel("本系统提供遥感影像智能解译功能，包含数据获取、预处理、渔网分割、场景分类、语义分割、目标检测和批量化解译等多种功能模块。")
         desc.setWordWrap(True)
         desc.setObjectName("desc_text")
         desc.setContentsMargins(0, 0, 0, 0)  # 移除文本内边距
@@ -732,8 +732,8 @@ class MainWindow(QMainWindow):
 6. 如何进行目标检测
    选择"目标检测"模块，导入影像，点击"开始目标检测"。
 
-7. 如何制作样本
-   选择"样本制作"模块，导入影像，点击"开始批量样本制作"。"""
+7. 如何进行批量化解译
+   选择"批量解译"模块，导入影像数据集，点击"开始批量解译"。"""
         
         usage = SelectableLabel(usage_text)
         usage.setWordWrap(True)
@@ -1239,14 +1239,14 @@ class MainWindow(QMainWindow):
         import_btn.setCursor(QCursor(Qt.PointingHandCursor))  # 设置鼠标悬停时为手型指针
         button_layout.addWidget(import_btn)
         
-        process_btn = QPushButton("开始批量样本制作")
+        process_btn = QPushButton("开始批量影像解译")
         process_btn.setObjectName("operation_btn")
         process_btn.setFixedWidth(180)
         process_btn.setFixedHeight(40)
         process_btn.setCursor(QCursor(Qt.PointingHandCursor))  # 设置鼠标悬停时为手型指针
         button_layout.addWidget(process_btn)
         
-        export_btn = QPushButton("导出样本")
+        export_btn = QPushButton("导出解译结果")
         export_btn.setObjectName("operation_btn")
         export_btn.setFixedWidth(180)
         export_btn.setFixedHeight(40)
@@ -1442,7 +1442,7 @@ class MainWindow(QMainWindow):
         section_title.setObjectName("section_title")
         content_layout.addWidget(section_title)
         
-        desc = QLabel("本系统提供遥感影像智能解译功能，包含数据获取、数据处理、渔网分割等功能。")
+        desc = QLabel("本系统提供遥感影像智能解译功能，包含数据获取、数据处理、渔网分割、批量影像解译等功能。")
         desc.setWordWrap(True)
         desc.setObjectName("desc_text")
         content_layout.addWidget(desc)
