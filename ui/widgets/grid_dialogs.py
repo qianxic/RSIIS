@@ -57,8 +57,8 @@ class GridParamsDialog(QDialog):
         ok_btn = QPushButton("确定")
         cancel_btn.clicked.connect(self.reject)
         ok_btn.clicked.connect(self.accept)
-        button_layout.addWidget(cancel_btn)
         button_layout.addWidget(ok_btn)
+        button_layout.addWidget(cancel_btn)
         layout.addLayout(button_layout)
     
     def update_grid_size(self):

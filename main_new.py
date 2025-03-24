@@ -8,18 +8,13 @@ from ui.main_window_new import MainWindow
 
 # 导入控制器
 from controller.event.fishnet_controller import FishnetController
-# 模拟其他控制器
 from controller.event.scene_controller import SceneController
 from controller.event.segment_controller import SegmentController
 from controller.event.detection_controller import DetectionController
 from controller.event.data_controller import DataController
-from controller.event.preprocess_controller import PreprocessController
 from controller.event.sample_making_controller import SampleMakingController
 from controller.event.setting_controller import SettingController
 
-# 模拟导入功能层模块
-# from Function.analysis.grid_generator import GridGenerator
-# from Function.data.data_splitter import DataSplitter
 
 # 设置Qt插件路径
 if hasattr(Qt, 'AA_ShareOpenGLContexts'):
@@ -55,7 +50,6 @@ def main():
     segment_controller = SegmentController()
     detection_controller = DetectionController()
     data_controller = DataController()
-    preprocess_controller = PreprocessController()
     sample_making_controller = SampleMakingController()
     setting_controller = SettingController()
     
@@ -65,7 +59,6 @@ def main():
     main_window.segment_page.connect_signals(segment_controller)
     main_window.detection_page.connect_signals(detection_controller)
     main_window.data_page.connect_signals(data_controller)
-    main_window.preprocess_page.connect_signals(preprocess_controller)
     main_window.sample_making_page.connect_signals(sample_making_controller)
     main_window.setting_page.connect_signals(setting_controller)
     

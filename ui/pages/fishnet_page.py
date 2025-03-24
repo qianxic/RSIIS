@@ -19,7 +19,7 @@ class FishnetPage(QWidget):
         title.setObjectName("page_title")
         layout.addWidget(title)
         
-        subtitle = QLabel("对遥感影像进行网格化处理，便于精确分析")
+        subtitle = QLabel("对遥感影像进行网格化处理，便于精确分析，支持常规图像和GeoTIFF格式")
         subtitle.setWordWrap(True)
         subtitle.setObjectName("subtitle")
         layout.addWidget(subtitle)
@@ -73,6 +73,30 @@ class FishnetPage(QWidget):
         
         button_layout.addStretch()  # 添加弹性空间
         content_layout.addWidget(button_container)
+        
+        # 添加功能说明区域
+        format_section = QLabel("支持的数据格式")
+        format_section.setObjectName("section_title")
+        content_layout.addWidget(format_section)
+        
+        format_frame = QFrame()
+        format_frame.setObjectName("settings_area")
+        format_layout = QVBoxLayout(format_frame)
+        format_layout.setContentsMargins(10, 10, 10, 10)
+        
+        # 添加格式说明
+        format_text = """支持的数据格式:
+1. 常规图像格式 - JPEG, PNG等常规图像格式，分割后导出为PNG格式
+2. GeoTIFF格式 - 支持带有地理参考信息的GeoTIFF格式，分割结果将保留地理参考信息
+3. 多波段支持 - 对于多波段GeoTIFF数据，分割后的结果将保留所有波段信息
+4. Sentinel-2数据 - 专门支持Sentinel-2多光谱数据，自动选择合适的波段组合并应用增强处理"""
+        
+        format_desc = SelectableLabel(format_text)
+        format_desc.setWordWrap(True)
+        format_desc.setObjectName("desc_text")
+        format_layout.addWidget(format_desc)
+        
+        content_layout.addWidget(format_frame)
         
         # 添加网格参数说明区域
         settings_section = QLabel("网格参数说明")

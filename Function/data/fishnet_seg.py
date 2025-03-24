@@ -1,11 +1,31 @@
 import os
+import sys
+import traceback
 import numpy as np
 from PIL import Image
+import rasterio
+from rasterio.windows import Window
+from rasterio.transform import from_origin
+import warnings
+# 抑制不必要的警告
+warnings.filterwarnings('ignore', category=rasterio.errors.NotGeoreferencedWarning)
+
+# 检查GDAL是否可用，用于增强诊断信息
+try:
+    from osgeo import gdal
+    GDAL_AVAILABLE = True
+except ImportError:
+    GDAL_AVAILABLE = False
+
+# 导入封装好的栅格和矢量处理工具
+from utils.geo import RasterLoader, RasterData, VectorUtils
+from utils.geo import RASTERIO_AVAILABLE, GDAL_AVAILABLE, VECTOR_LIBS_AVAILABLE
 
 class FishnetSegmentation:
     """
     渔网分割功能模型层实现类
     负责图像的分割处理和结果生成，不涉及UI相关操作
+    支持常规图像和GeoTIFF格式
     """
     
     def __init__(self):
@@ -15,10 +35,16 @@ class FishnetSegmentation:
             "grid_count": (4, 4)  # 默认4x4网格
         }
         self.grid_result = []
+        
+        # 使用 RasterData 存储栅格数据
+        self.raster_data = None
+        
+        # 记录详细错误信息
+        self.last_error = None
     
     def load_image(self, image_path):
         """
-        加载图像文件
+        加载图像文件，支持常规图像和GeoTIFF格式
         
         Args:
             image_path: 图像文件路径
@@ -27,24 +53,48 @@ class FishnetSegmentation:
             bool: 加载是否成功
             dict: 图像信息 (宽度，高度，通道数等)
         """
+        self.last_error = None
+        self.image_path = image_path
+        
         try:
-            self.image_path = image_path
-            self.image = Image.open(image_path)
+            # 使用封装的 RasterLoader 加载栅格数据
+            raster_data, success = RasterLoader.load(image_path)
             
-            # 确保图像为RGB模式
-            if self.image.mode != 'RGB':
-                self.image = self.image.convert('RGB')
+            if not success:
+                self.last_error = raster_data.error_message
+                return False, {"error": raster_data.error_message}
             
-            width, height = self.image.size
-            return True, {
-                "width": width,
-                "height": height,
-                "mode": self.image.mode,
-                "format": self.image.format
+            # 保存栅格数据
+            self.raster_data = raster_data
+            self.image = raster_data.image
+            
+            # 返回图像信息
+            result = {
+                "width": raster_data.width,
+                "height": raster_data.height,
+                "is_geotiff": raster_data.is_geotiff,
+                "format": raster_data.metadata.get("format", "未知")
             }
+            
+            # 如果是GeoTIFF，添加更多信息
+            if raster_data.is_geotiff:
+                result["bands"] = raster_data.bands_count
+                result["crs"] = str(raster_data.crs) if raster_data.crs else "未知"
+                result["is_sentinel"] = raster_data.is_sentinel
+                
+                if raster_data.is_sentinel:
+                    result["band_combination"] = raster_data.metadata.get("band_combination", "")
+            
+            return True, result
+                
         except Exception as e:
-            print(f"加载图像出错: {str(e)}")
-            return False, {"error": str(e)}
+            # 捕获并记录详细的异常信息
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            error_details = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+            
+            error_msg = f"加载图像出错: {str(e)}\n详细信息: {error_details}"
+            self.last_error = error_msg
+            return False, {"error": str(e), "detailed_error": error_details}
     
     def set_grid_parameters(self, grid_count):
         """
@@ -77,7 +127,7 @@ class FishnetSegmentation:
             else:
                 return False, {"error": "未加载图像"}
         except Exception as e:
-            print(f"设置网格参数出错: {str(e)}")
+            self.last_error = f"设置网格参数出错: {str(e)}"
             return False, {"error": str(e)}
     
     def generate_grid(self):
@@ -107,21 +157,15 @@ class FishnetSegmentation:
             
             for row in range(rows):
                 for col in range(cols):
-                    # 计算当前网格的位置（标准均匀分割）
+                    # 计算当前网格的位置
                     x = col * std_width
                     y = row * std_height
                     
-                    # 计算当前网格的实际宽高（处理不能整除的情况）
-                    actual_width = std_width
-                    actual_height = std_height
+                    # 计算实际宽高（处理不能整除的情况）
+                    actual_width = std_width if col < cols - 1 else (width - x)
+                    actual_height = std_height if row < rows - 1 else (height - y)
                     
-                    # 如果是最后一行/列，处理剩余像素
-                    if col == cols - 1:
-                        actual_width = width - x
-                    if row == rows - 1:
-                        actual_height = height - y
-                    
-                    # 确保裁剪区域有效
+                    # 跳过无效的裁剪区域
                     if actual_width <= 0 or actual_height <= 0:
                         continue
                     
@@ -138,20 +182,48 @@ class FishnetSegmentation:
                         if grid_img.size[0] <= 0 or grid_img.size[1] <= 0:
                             continue
                         
-                        # 添加到结果列表
-                        self.grid_result.append({
+                        grid_data = {
                             'position': (x, y, actual_width, actual_height),
                             'image_data': grid_img,  # 这里存储PIL图像对象
                             'row': row + 1,
                             'col': col + 1
-                        })
+                        }
+                        
+                        # 如果是GeoTIFF，添加地理参考信息
+                        if self.raster_data and self.raster_data.is_geotiff and self.raster_data.geo_transform:
+                            self._add_geo_info_to_grid(grid_data, x, y, actual_width, actual_height)
+                        
+                        # 添加到结果列表
+                        self.grid_result.append(grid_data)
                     except Exception as e:
-                        print(f"裁剪网格出错: 位置({row+1},{col+1}), 错误: {str(e)}")
+                        self.last_error = f"裁剪网格出错: 位置({row+1},{col+1}), 错误: {str(e)}"
             
             return True, self.grid_result
         except Exception as e:
-            print(f"生成网格出错: {str(e)}")
+            self.last_error = f"生成网格出错: {str(e)}"
             return False, {"error": str(e)}
+    
+    def _add_geo_info_to_grid(self, grid_data, x, y, width, height):
+        """添加地理参考信息到网格数据"""
+        if RASTERIO_AVAILABLE:
+            from rasterio.windows import Window
+            # 添加Window对象，用于后续保存GeoTIFF子图
+            grid_data['geo_window'] = Window(x, y, width, height)
+            
+            # 计算子图的地理变换
+            if hasattr(self.raster_data.geo_transform, '__call__'):
+                # rasterio风格的transform
+                from rasterio.transform import from_origin
+                topleft_x, topleft_y = self.raster_data.geo_transform * (x, y)
+                grid_data['geo_transform'] = from_origin(
+                    topleft_x, topleft_y, 
+                    self.raster_data.geo_transform.a, self.raster_data.geo_transform.e
+                )
+            else:
+                # GDAL风格的transform
+                grid_data['geo_transform'] = self.raster_data.geo_transform
+                
+            grid_data['geo_crs'] = self.raster_data.crs
     
     def get_grid_result(self):
         """
@@ -162,13 +234,14 @@ class FishnetSegmentation:
         """
         return self.grid_result
     
-    def export_result(self, export_dir, create_subfolders=True):
+    def export_result(self, export_dir, create_subfolders=True, export_shp=True):
         """
         导出分割结果
         
         Args:
             export_dir: 导出目录
             create_subfolders: 是否创建子文件夹
+            export_shp: 是否导出Shapefile矢量格式
             
         Returns:
             bool: 导出是否成功
@@ -204,12 +277,41 @@ class FishnetSegmentation:
                 row, col = grid['row'], grid['col']
                 grid_img = grid['image_data']
                 
-                # 构建保存文件名：原文件名_行_列.png
-                save_name = f"{base_name}_{row}_{col}.png"
-                save_path = os.path.join(grids_dir, save_name)
+                # 根据是否有地理参考信息，选择不同的保存方式
+                if self.raster_data and self.raster_data.is_geotiff and 'geo_window' in grid and self.raster_data.rasterio_dataset:
+                    # 保存为GeoTIFF
+                    save_name = f"{base_name}_{row}_{col}.tif"
+                    save_path = os.path.join(grids_dir, save_name)
+                    
+                    # 使用rasterio保存带有地理参考信息的裁剪图像
+                    if RASTERIO_AVAILABLE:
+                        import rasterio
+                        window = grid['geo_window']
+                        
+                        # 读取原始数据（保留所有波段）
+                        data = self.raster_data.rasterio_dataset.read(window=window)
+                        
+                        # 写入GeoTIFF
+                        profile = self.raster_data.rasterio_dataset.profile.copy()
+                        profile.update({
+                            'height': window.height,
+                            'width': window.width,
+                            'transform': grid['geo_transform']
+                        })
+                        
+                        with rasterio.open(save_path, 'w', **profile) as dst:
+                            dst.write(data)
+                    else:
+                        # 如果rasterio不可用，保存为普通PNG
+                        save_name = f"{base_name}_{row}_{col}.png"
+                        save_path = os.path.join(grids_dir, save_name)
+                        grid_img.save(save_path)
+                else:
+                    # 保存为普通PNG
+                    save_name = f"{base_name}_{row}_{col}.png"
+                    save_path = os.path.join(grids_dir, save_name)
+                    grid_img.save(save_path)
                 
-                # 保存图像
-                grid_img.save(save_path)
                 saved_files.append(save_path)
             
             # 2. 保存分割示意图
@@ -217,13 +319,27 @@ class FishnetSegmentation:
             self._create_overview_image(overview_path)
             saved_files.append(overview_path)
             
+            # 3. 如果需要，导出矢量格式
+            if export_shp and self.raster_data and VECTOR_LIBS_AVAILABLE:
+                shp_path = os.path.join(save_dir, f"{base_name}_网格矢量.shp")
+                success, message = VectorUtils.grid_to_shapefile(
+                    self.raster_data, 
+                    self.grid_result, 
+                    shp_path
+                )
+                
+                if success:
+                    saved_files.append(shp_path)
+                else:
+                    self.last_error = f"导出矢量文件失败: {message}"
+            
             return True, {
                 "save_dir": save_dir,
                 "files_count": len(saved_files),
                 "files": saved_files
             }
         except Exception as e:
-            print(f"导出结果出错: {str(e)}")
+            self.last_error = f"导出结果出错: {str(e)}"
             return False, {"error": str(e)}
     
     def _create_overview_image(self, save_path):
@@ -242,7 +358,9 @@ class FishnetSegmentation:
             
             # 创建新图像，与原图大小相同
             overview_img = self.image.copy()
-            width, height = overview_img.size
+            
+            # 应用图像增强处理
+            overview_img = self._enhance_grid_image(overview_img)
             
             # 在PIL图像上绘制网格线和编号
             from PIL import ImageDraw, ImageFont
@@ -283,7 +401,7 @@ class FishnetSegmentation:
             overview_img.save(save_path)
             return True
         except Exception as e:
-            print(f"创建示意图出错: {str(e)}")
+            self.last_error = f"创建示意图出错: {str(e)}"
             return False
             
     def create_overview_image_for_ui(self):
@@ -300,6 +418,9 @@ class FishnetSegmentation:
             
             # 创建新图像，与原图大小相同
             overview_img = self.image.copy()
+            
+            # 应用图像增强方法进行处理
+            overview_img = self._enhance_grid_image(overview_img)
             
             # 在PIL图像上绘制网格线和编号
             from PIL import ImageDraw, ImageFont
@@ -343,7 +464,7 @@ class FishnetSegmentation:
             return self.convert_pil_to_qimage_format(overview_img)
             
         except Exception as e:
-            print(f"创建预览示意图出错: {str(e)}")
+            self.last_error = f"创建预览示意图出错: {str(e)}"
             return None
     
     # 辅助方法：将PIL图像转换为QImage格式的方法（用于UI层集成）
@@ -362,9 +483,8 @@ class FishnetSegmentation:
             if pil_image.mode != 'RGB':
                 pil_image = pil_image.convert('RGB')
             
-            # 注意：PySide6中QImage使用ARGB/RGBA格式，这需要将RGB通道重新排序
-            # 之前的代码是将RGB转为BGR，但这可能导致红色变蓝色的问题
-            # 因此使用直接转换方式，不交换通道
+            # 应用图像增强方法
+            pil_image = self._enhance_grid_image(pil_image)
             
             # 获取图像数据
             width, height = pil_image.size
@@ -379,7 +499,7 @@ class FishnetSegmentation:
                 "format": "RGB888"  # 对应于QImage.Format_RGB888
             }
         except Exception as e:
-            print(f"图像格式转换出错: {str(e)}")
+            self.last_error = f"图像格式转换出错: {str(e)}"
             return None
             
     def get_ui_compatible_results(self):
@@ -406,3 +526,39 @@ class FishnetSegmentation:
             ui_result.append(ui_grid)
         
         return ui_result
+
+    def __del__(self):
+        """析构函数，确保释放资源"""
+        # 关闭资源
+        if hasattr(self, 'raster_data') and self.raster_data:
+            if self.raster_data.rasterio_dataset:
+                self.raster_data.rasterio_dataset.close()
+
+    def _enhance_grid_image(self, pil_image):
+        """
+        使用累积计数截断方法增强网格图像显示
+        
+        Args:
+            pil_image: PIL图像对象
+            
+        Returns:
+            PIL.Image: 处理后的图像对象
+        """
+        try:
+            # 如果图像已经由RasterLoader处理过，则不需要再处理
+            if self.raster_data and self.raster_data.is_geotiff:
+                return pil_image
+                
+            # 转换为numpy数组
+            img_array = np.array(pil_image)
+            
+            # 使用utils.geo.raster_loader中的增强方法
+            from utils.geo.raster_loader import RasterLoader
+            enhanced_array = RasterLoader._enhance_sentinel_image(img_array)
+            
+            # 转回PIL图像
+            from PIL import Image
+            return Image.fromarray(enhanced_array)
+        except Exception as e:
+            self.last_error = f"图像增强失败: {str(e)}"
+            return pil_image  # 出错时返回原始图像

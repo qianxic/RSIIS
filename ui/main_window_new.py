@@ -9,7 +9,6 @@ from ui.styles.themes import LIGHT_STYLE, DARK_STYLE
 # 导入页面组件
 from ui.pages.home_page import HomePage
 from ui.pages.data_page import DataPage
-from ui.pages.preprocess_page import PreprocessPage
 from ui.pages.fishnet_page import FishnetPage
 from ui.pages.scene_page import ScenePage
 from ui.pages.segment_page import SegmentPage
@@ -129,11 +128,9 @@ class MainWindow(QMainWindow):
         
         # 数据处理组按钮
         self.data_btn = self.create_menu_button("数据获取")
-        self.preprocess_btn = self.create_menu_button("数据处理")
         self.fishnet_btn = self.create_menu_button("渔网分割")
         
         sidebar_layout.addWidget(self.data_btn)
-        sidebar_layout.addWidget(self.preprocess_btn)
         sidebar_layout.addWidget(self.fishnet_btn)
         
         # 添加分隔线
@@ -204,7 +201,6 @@ class MainWindow(QMainWindow):
         # 使用模块化的页面组件
         self.home_page = HomePage()
         self.data_page = DataPage()
-        self.preprocess_page = PreprocessPage()
         self.fishnet_page = FishnetPage()
         self.scene_page = ScenePage()
         self.segment_page = SegmentPage()
@@ -216,7 +212,6 @@ class MainWindow(QMainWindow):
         # 将页面添加到堆叠部件
         self.content_stack.addWidget(self.home_page)
         self.content_stack.addWidget(self.data_page)
-        self.content_stack.addWidget(self.preprocess_page)
         self.content_stack.addWidget(self.fishnet_page)
         self.content_stack.addWidget(self.scene_page)
         self.content_stack.addWidget(self.segment_page)
@@ -229,19 +224,18 @@ class MainWindow(QMainWindow):
         """连接所有信号槽"""
         self.home_btn.clicked.connect(lambda: self.select_button(self.home_btn, 0))
         self.data_btn.clicked.connect(lambda: self.select_button(self.data_btn, 1))
-        self.preprocess_btn.clicked.connect(lambda: self.select_button(self.preprocess_btn, 2))
-        self.fishnet_btn.clicked.connect(lambda: self.select_button(self.fishnet_btn, 3))
-        self.scene_btn.clicked.connect(lambda: self.select_button(self.scene_btn, 4))
-        self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 5))
-        self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 6))
-        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 7))
-        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 8))
-        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 9))
+        self.fishnet_btn.clicked.connect(lambda: self.select_button(self.fishnet_btn, 2))
+        self.scene_btn.clicked.connect(lambda: self.select_button(self.scene_btn, 3))
+        self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 4))
+        self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 5))
+        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 6))
+        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 7))
+        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 8))
     
     def select_button(self, button, page_index):
         """选择按钮，并切换对应的功能页面"""
         # 重置所有按钮状态
-        for btn in [self.home_btn, self.data_btn, self.preprocess_btn, self.fishnet_btn,
+        for btn in [self.home_btn, self.data_btn, self.fishnet_btn,
                    self.scene_btn, self.segment_btn, self.detection_btn, self.sample_making_btn,
                    self.help_btn, self.settings_btn]:
             btn.setChecked(False)
