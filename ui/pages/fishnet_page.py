@@ -74,53 +74,6 @@ class FishnetPage(QWidget):
         button_layout.addStretch()  # 添加弹性空间
         content_layout.addWidget(button_container)
         
-        # 添加功能说明区域
-        format_section = QLabel("支持的数据格式")
-        format_section.setObjectName("section_title")
-        content_layout.addWidget(format_section)
-        
-        format_frame = QFrame()
-        format_frame.setObjectName("settings_area")
-        format_layout = QVBoxLayout(format_frame)
-        format_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # 添加格式说明
-        format_text = """支持的数据格式:
-1. 常规图像格式 - JPEG, PNG等常规图像格式，分割后导出为PNG格式
-2. GeoTIFF格式 - 支持带有地理参考信息的GeoTIFF格式，分割结果将保留地理参考信息
-3. 多波段支持 - 对于多波段GeoTIFF数据，分割后的结果将保留所有波段信息
-4. Sentinel-2数据 - 专门支持Sentinel-2多光谱数据，自动选择合适的波段组合并应用增强处理"""
-        
-        format_desc = SelectableLabel(format_text)
-        format_desc.setWordWrap(True)
-        format_desc.setObjectName("desc_text")
-        format_layout.addWidget(format_desc)
-        
-        content_layout.addWidget(format_frame)
-        
-        # 添加网格参数说明区域
-        settings_section = QLabel("网格参数说明")
-        settings_section.setObjectName("section_title")
-        content_layout.addWidget(settings_section)
-        
-        settings_frame = QFrame()
-        settings_frame.setObjectName("settings_area")
-        settings_layout = QVBoxLayout(settings_frame)
-        settings_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # 添加网格参数说明
-        grid_params_text = """渔网分割参数说明:
-1. 网格大小 - 定义每个网格的像素宽度和高度，推荐值为256×256或512×512像素
-2. 重叠像素 - 相邻网格之间的重叠像素数，用于避免边界效应，推荐值为32或64像素
-3. 注意事项 - 选择合适的网格大小可以平衡计算效率和精度，较大的重叠像素有助于提高边界区域的识别精度"""
-        
-        grid_params_desc = SelectableLabel(grid_params_text)
-        grid_params_desc.setWordWrap(True)
-        grid_params_desc.setObjectName("desc_text")
-        settings_layout.addWidget(grid_params_desc)
-        
-        content_layout.addWidget(settings_frame)
-        
         layout.addWidget(content_frame)
         layout.addStretch()
         

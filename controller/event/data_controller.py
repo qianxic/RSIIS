@@ -24,13 +24,15 @@ class DataController:
     
     def download_data(self):
         """在线下载遥感数据"""
-        # 这里实际上会连接到数据下载功能
-        # 模拟下载行为
-        QMessageBox.information(None, "下载中", "正在连接遥感数据服务器，准备下载数据...")
-        
-        # 模拟下载成功
-        QMessageBox.information(None, "下载完成", "已成功下载3景遥感影像")
-        return True
+        # 显示功能尚未开发的提示信息
+        QMessageBox.information(
+            None, 
+            "功能开发中", 
+            "遥感数据在线下载功能尚未开发完成。\n\n"
+            "未来版本将支持通过API接口访问并获取多种卫星遥感数据源，"
+            "包括Sentinel-2、Landsat系列等公开卫星数据。"
+        )
+        return False
     
     def manage_data(self):
         """管理数据"""

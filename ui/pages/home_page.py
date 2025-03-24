@@ -43,64 +43,6 @@ class HomePage(QWidget):
         subtitle.setObjectName("subtitle")
         content_layout.addWidget(subtitle)
         
-        # 创建系统概述框架
-        about_frame = QFrame()
-        about_frame.setObjectName("content_frame")
-        about_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        about_layout = QVBoxLayout(about_frame)
-        
-        about_title = QLabel("系统概述")
-        about_title.setObjectName("section_title")
-        about_layout.addWidget(about_title)
-        
-        about_text = SelectableLabel("""
-        遥感影像智能解译系统(RSIIS)是一款基于深度学习的遥感影像处理和解译平台。
-        
-        本系统集成了数据获取、渔网分割、场景分类、语义分割、目标检测等功能模块，
-        为遥感影像处理提供一站式解决方案。
-        
-        系统优势：
-        ● 完整的遥感影像处理流程
-        ● 多种先进的深度学习模型支持
-        ● 友好的图形化交互界面
-        ● 高效的批量处理能力
-        ● 可扩展的插件架构
-        
-        适用场景：
-        ● 地理信息分析
-        ● 城市规划监测
-        ● 环境变化监测
-        ● 农业资源管理
-        ● 灾害评估响应
-        """)
-        about_text.setObjectName("about_text")
-        about_layout.addWidget(about_text)
-        
-        content_layout.addWidget(about_frame)
-        
-        # 创建使用流程框架
-        usage_frame = QFrame()
-        usage_frame.setObjectName("content_frame")
-        usage_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        usage_layout = QVBoxLayout(usage_frame)
-        
-        usage_title = QLabel("使用流程")
-        usage_title.setObjectName("section_title")
-        usage_layout.addWidget(usage_title)
-        
-        usage_text = SelectableLabel("""
-        1. 数据获取：导入本地遥感影像或在线下载遥感数据
-        2. 影像解译：使用场景分类、语义分割或目标检测等功能进行影像解译
-        3. 结果导出：将解译结果导出为图像或矢量文件
-        
-        您可以在左侧导航栏选择需要的功能模块，根据提示操作。
-        系统会自动记录操作历史，您可以随时查看或导出处理结果。
-        """)
-        usage_text.setObjectName("about_text")
-        usage_layout.addWidget(usage_text)
-        
-        content_layout.addWidget(usage_frame)
-        
         # 添加底部图片区
         images_container = QFrame()
         images_container.setObjectName("content_frame")

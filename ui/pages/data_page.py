@@ -38,13 +38,7 @@ class DataPage(QWidget):
         button_layout.setContentsMargins(0, 10, 0, 10)
         button_layout.setSpacing(15)
         
-        self.import_btn = QPushButton("本地导入")
-        self.import_btn.setObjectName("operation_btn")
-        self.import_btn.setFixedWidth(180)
-        self.import_btn.setFixedHeight(40)
-        self.import_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        button_layout.addWidget(self.import_btn)
-        
+        # 在线下载按钮
         self.download_btn = QPushButton("在线下载")
         self.download_btn.setObjectName("operation_btn")
         self.download_btn.setFixedWidth(180)
@@ -52,6 +46,15 @@ class DataPage(QWidget):
         self.download_btn.setCursor(QCursor(Qt.PointingHandCursor))
         button_layout.addWidget(self.download_btn)
         
+        # 本地导入按钮
+        self.import_btn = QPushButton("本地导入")
+        self.import_btn.setObjectName("operation_btn")
+        self.import_btn.setFixedWidth(180)
+        self.import_btn.setFixedHeight(40)
+        self.import_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        button_layout.addWidget(self.import_btn)
+        
+        # 数据管理按钮
         self.manage_btn = QPushButton("数据管理")
         self.manage_btn.setObjectName("operation_btn")
         self.manage_btn.setFixedWidth(180)
