@@ -555,7 +555,7 @@ class MainWindow(QMainWindow):
         separator4.setObjectName("separator")
         sidebar_layout.addWidget(separator4)
         
-        # 样本制作按钮
+        # 批量解译
         self.sample_making_btn = self.create_menu_button("批量影像解译")
         sidebar_layout.addWidget(self.sample_making_btn)
         
@@ -1294,7 +1294,7 @@ class MainWindow(QMainWindow):
         scroll_layout.addWidget(section_title1)
         
         # 添加可点击的场景分类图片
-        image_path1 = "D:/VS_WORKBASE/PySide6/遥感影像智能解译系统V1.0/demo_image/scene_classification_process.png"
+        image_path1 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\scene_classification_process.png"
         img_label1 = self.add_clickable_image(scroll_layout, image_path1, width=700)
         
         # 添加场景分类说明 (使用SelectableLabel使文本可选)
@@ -1318,7 +1318,7 @@ class MainWindow(QMainWindow):
         scroll_layout.addWidget(section_title2)
         
         # 添加可点击的语义分割图片
-        image_path2 = "D:/VS_WORKBASE/PySide6/遥感影像智能解译系统V1.0/demo_image/DeepLab_segmentation_process.png"
+        image_path2 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\DeepLab_segmentation_process.png"
         img_label2 = self.add_clickable_image(scroll_layout, image_path2, width=700)
         
         # 添加语义分割说明 (使用SelectableLabel使文本可选)
@@ -1342,7 +1342,7 @@ class MainWindow(QMainWindow):
         scroll_layout.addWidget(section_title3)
         
         # 添加可点击的目标检测图片
-        image_path3 = "D:/VS_WORKBASE/PySide6/遥感影像智能解译系统V1.0/demo_image/yolo_detection_process.png"
+        image_path3 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\yolo_detection_process.png"
         img_label3 = self.add_clickable_image(scroll_layout, image_path3, width=700)
         
         # 添加目标检测说明 (使用SelectableLabel使文本可选)
