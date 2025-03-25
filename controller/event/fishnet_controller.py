@@ -5,6 +5,7 @@ from PySide6.QtGui import QImage, QColor, qRed, qGreen, qBlue, qRgb
 import os
 import sys
 from PIL import Image
+import time
 
 # 导入Function层的渔网分割模型
 from Function.data.fishnet_seg import FishnetSegmentation
@@ -90,14 +91,7 @@ class FishnetController(QObject):
                         # 简化坐标系显示
                         simplified_crs = self._simplify_crs_display(crs)
                         
-                        if self.is_sentinel:
-                            band_combo = image_info.get("band_combination", "")
-                            msg += f"\n格式：Sentinel-2 GeoTIFF\n波段数：{bands}\n坐标系：{simplified_crs}\n使用波段组合：{band_combo}"
-                            msg += "\n\n注意：已应用基本图像处理"
-                        else:
-                            msg += f"\n格式：GeoTIFF\n波段数：{bands}\n坐标系：{simplified_crs}"
-                    else:
-                        msg += f"\n格式：{image_format}"
+                        msg += f"\n波段数：{bands}\n坐标系：{simplified_crs}"
                     
                     QMessageBox.information(None, "导入成功", msg)
                     return True
@@ -253,7 +247,7 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                 
                 # 如果是GeoTIFF，添加提示
                 if self.is_geotiff:
-                    msg += "\n\n注意：检测到GeoTIFF格式，分割结果将保留地理参考信息"
+                    pass
                 
                 QMessageBox.information(None, "参数设置", msg)
                 return True
@@ -307,10 +301,11 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                         )
                         
                         # 检查图像是否全黑或接近全黑（1%的非黑色像素）
+                        # 注意：我们已经在fishnet_seg.py中对图像进行了增强处理，这里不需要额外增强
                         is_black = self._is_image_too_dark(qimg)
                         
                         if is_black:
-                            # 尝试进行亮度调整
+                            # 尝试进行亮度调整，只在图像确实太暗时才增强
                             qimg = self._enhance_qimage(qimg)
                         else:
                             has_valid_image = True
@@ -330,10 +325,18 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                         "分割成功，但所有网格图像似乎都是黑色的。这可能是因为：\n"
                         "1. 原始图像数据特殊或缺少可见光波段\n"
                         "2. 需要特殊的图像增强或处理\n"
-                        "您仍然可以查看和导出分割结果。")
-                    
-                # 显示预览窗口
-                self.show_preview()
+                        "您仍然可以导出分割结果。")
+                
+                # 不再在控制台输出任何信息
+                
+                # 获取网格数量
+                total_grids = len(self.fishnet_model.grid_result)
+                
+                # 显示一个简单的成功消息
+                QMessageBox.information(None, "渔网分割", 
+                    f"分割成功，共生成 {total_grids} 个网格图像\n\n"
+                    f"请点击\"导出分割结果\"按钮保存结果和详细信息")
+                
                 return True
             else:
                 if isinstance(result, dict) and 'error' in result:
@@ -352,10 +355,7 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
             QApplication.restoreOverrideCursor()
     
     def _is_image_too_dark(self, qimage, threshold=10):
-        """
-        检查图像是否过暗或全黑
-        更高效的采样检测
-        """
+        
         try:
             width = qimage.width()
             height = qimage.height()
@@ -412,39 +412,17 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
         except Exception:
             return qimage  # 返回原始图像
     
-    def show_preview(self):
-        """显示渔网分割预览窗口"""
-        if not self.grid_result or not self.current_image_path:
-            QMessageBox.warning(None, "错误", "没有可用的分割结果")
-            return
-        
-        # 如果已有预览窗口，先关闭
-        if hasattr(self, 'overview_window') and self.overview_window and self.overview_window.isVisible():
-            self.overview_window.close()
-        
-        # 创建并显示示意图窗口
-        self.overview_window = GridOverviewWindow(self.current_image_path, self.grid_result, self.fishnet_model)
-        self.overview_window.show()
-    
-    def show_detailed_preview(self):
-        """显示带有详细分割预览的窗口"""
-        if not self.grid_result or not self.current_image_path:
-            QMessageBox.warning(None, "错误", "没有可用的分割结果")
-            return
-        
-        # 如果已有预览窗口，先关闭
-        if hasattr(self, 'preview_window') and self.preview_window and self.preview_window.isVisible():
-            self.preview_window.close()
-        
-        # 创建并显示详细预览窗口
-        self.preview_window = GridPreviewWindow(self.current_image_path, self.grid_result, self.fishnet_model)
-        self.preview_window.show()
     
     def export_result(self):
         """导出分割结果"""
         if not self.current_image_path:
             QMessageBox.warning(None, "错误", "请先导入并处理遥感影像")
             return False
+        
+        # 告知用户将会生成详细信息文件
+        QMessageBox.information(None, "导出信息", 
+            "导出过程中将会生成详细的分割信息文件(分割信息.txt)，\n"
+            "包含每个网格的尺寸、位置和地理坐标等详细数据。")
         
         # 让用户选择保存文件夹
         base_dir = QFileDialog.getExistingDirectory(
@@ -459,13 +437,22 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                 success, export_info = self.fishnet_model.export_result(base_dir, create_subfolders=True, export_shp=False)
                 
                 if success:
-                    msg = f"渔网分割结果已保存至：{export_info.get('save_dir')}\n共导出 {export_info.get('files_count')} 个文件"
+                    # 获取保存目录路径
+                    save_dir = export_info.get('save_dir', base_dir)
+                    
+                    # 保存分割信息到TXT文件
+                    info_file_path = os.path.join(save_dir, "分割信息.txt")
+                    self._save_grid_info_to_file(info_file_path)
+                    
+                    msg = f"渔网分割结果已保存至：{save_dir}\n共导出 {export_info.get('files_count')} 个文件"
                     
                     # 如果是GeoTIFF，添加提示
                     if self.is_geotiff:
-                        msg += "\n\n注意：分割结果已保存为TIFF格式并保留了原始GeoTIFF的地理参考信息"
+                        msg += "\n\n分割结果已保存为TIFF格式并保留了原始GeoTIFF的地理参考信息"
                         if GDAL_AVAILABLE:
                             msg += "\n已使用GDAL高精度方法保存地理信息"
+                    
+                    msg += f"\n\n分割详细信息已保存到: {info_file_path}\n请查看此文件获取每个网格的具体信息。"
                     
                     QMessageBox.information(None, "导出成功", msg)
                     return True
@@ -487,6 +474,73 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                 )
         
         return False
+    
+    def _save_grid_info_to_file(self, file_path):
+        """
+        保存网格分割信息到TXT文件
+        
+        Args:
+            file_path: TXT文件保存路径
+        """
+        if not self.fishnet_model or not self.fishnet_model.grid_result:
+            return
+        
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                # 写入标题和基本信息
+                f.write("=" * 50 + "\n")
+                f.write("渔网分割结果信息\n")
+                f.write("=" * 50 + "\n\n")
+                
+                f.write(f"原始图像: {self.current_image_path}\n")
+                f.write(f"分割时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"网格数量: {len(self.fishnet_model.grid_result)}\n")
+                
+                if self.is_geotiff:
+                    f.write(f"GeoTIFF: 是\n")
+                if self.is_sentinel:
+                    f.write(f"Sentinel: 是\n")
+                
+                f.write("\n" + "-" * 50 + "\n\n")
+                
+                # 写入每个网格的详细信息
+                for i, grid in enumerate(self.fishnet_model.grid_result):
+                    # 获取基本信息
+                    pos = grid['position']
+                    row, col = grid['row'], grid['col']
+                    width, height = grid['image_data'].size
+                    
+                    # 写入基本信息
+                    f.write(f"网格 {i+1} (行:{row+1}, 列:{col+1}):\n")
+                    f.write(f"  尺寸: {width} x {height} 像素\n")
+                    f.write(f"  原图位置: 左上角({pos[0]}, {pos[1]}), 宽度:{pos[2]}, 高度:{pos[3]}\n")
+                    
+                    # 如果有地理信息，则写入
+                    if 'geo_transform' in grid and grid['geo_transform'] is not None:
+                        if hasattr(grid['geo_transform'], '__call__'):
+                            # rasterio风格的transform
+                            topleft_x, topleft_y = grid['geo_transform'] * (0, 0)
+                            botright_x, botright_y = grid['geo_transform'] * (width, height)
+                            f.write(f"  地理坐标: 左上角({topleft_x:.6f}, {topleft_y:.6f}), 右下角({botright_x:.6f}, {botright_y:.6f})\n")
+                        else:
+                            # GDAL风格的transform
+                            transform = grid['geo_transform']
+                            topleft_x = transform[0] + pos[0] * transform[1]
+                            topleft_y = transform[3] + pos[1] * transform[5]
+                            botright_x = topleft_x + width * transform[1]
+                            botright_y = topleft_y + height * transform[5]
+                            f.write(f"  地理坐标: 左上角({topleft_x:.6f}, {topleft_y:.6f}), 右下角({botright_x:.6f}, {botright_y:.6f})\n")
+                    
+                    f.write("\n")
+                
+                f.write("=" * 50 + "\n")
+                f.write("文件结束\n")
+                f.write("=" * 50 + "\n")
+                
+        except Exception as e:
+            import traceback
+            print(f"保存分割信息到TXT文件时出错: {str(e)}")
+            traceback.print_exc()
     
     def _simplify_crs_display(self, crs_string):
         """

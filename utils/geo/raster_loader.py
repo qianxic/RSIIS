@@ -151,10 +151,24 @@ class RasterLoader:
                 if raster.is_sentinel:
                     RasterLoader._process_sentinel(raster)
                 elif raster.bands_count >= 3:
-                    # 标准RGB读取（适用于正常的3波段数据）
-                    red = dataset.read(1)
-                    green = dataset.read(2)
-                    blue = dataset.read(3)
+                    # 使用B4(蓝色)、B3(绿色)、B2(红色)波段
+                    # 判断是否有足够的波段
+                    max_band = min(raster.bands_count, 4) 
+                    if max_band >= 4:
+                        # 使用B4,B3,B2
+                        blue = dataset.read(2)
+                        green = dataset.read(3)
+                        red = dataset.read(4)
+                    else:
+                        # 使用标准顺序
+                        red = dataset.read(1)
+                        green = dataset.read(2)
+                        blue = dataset.read(3) if max_band >= 3 else dataset.read(1)
+                    
+                    # 记录波段使用信息
+                    if max_band >= 4:
+                        raster.metadata["band_combination"] = "R:Band4, G:Band3, B:Band2"
+                    
                     rgb = np.stack([red, green, blue], axis=2)
                 else:
                     # 单波段，转换为RGB
@@ -216,11 +230,11 @@ class RasterLoader:
                 # 尝试通过名称识别波段
                 for i, name in enumerate(band_names):
                     band_idx = i + 1  # GDAL使用1-based索引
-                    if 'red' in name or 'b4' in name or 'band4' in name:
+                    if 'red' in name or 'b2' in name or 'band2' in name:
                         red_idx = band_idx
                     elif 'green' in name or 'b3' in name or 'band3' in name:
                         green_idx = band_idx
-                    elif 'blue' in name or 'b2' in name or 'band2' in name:
+                    elif 'blue' in name or 'b4' in name or 'band4' in name:
                         blue_idx = band_idx
                 
                 # 确保索引在有效范围内
@@ -313,48 +327,19 @@ class RasterLoader:
     def _process_sentinel(raster):
         """专门处理Sentinel-2数据"""
         try:
-            # 识别波段
-            raster.band_indices = {}
+            # 使用指定的波段组合：B4(蓝色)、B3(绿色)、B2(红色)
+            # 确保波段索引在有效范围内
+            blue_idx = min(4, raster.bands_count)
+            green_idx = min(3, raster.bands_count)
+            red_idx = min(2, raster.bands_count)
             
-            # 尝试识别常用的波段命名方式
-            for i, band_name in enumerate(raster.band_names):
-                lower_name = band_name.lower() if band_name else ''
-                
-                band_index = i + 1  # rasterio使用1-based索引
-                
-                if 'red' in lower_name or 'b4' in lower_name or 'band4' in lower_name:
-                    raster.band_indices['red'] = band_index
-                elif 'green' in lower_name or 'b3' in lower_name or 'band3' in lower_name:
-                    raster.band_indices['green'] = band_index
-                elif 'blue' in lower_name or 'b2' in lower_name or 'band2' in lower_name:
-                    raster.band_indices['blue'] = band_index
-                elif 'nir' in lower_name or 'b8' in lower_name or 'band8' in lower_name:
-                    raster.band_indices['nir'] = band_index
-            
-            # 如果无法通过描述识别，则采用默认的Sentinel-2波段索引
-            if not all(key in raster.band_indices for key in ['red', 'green', 'blue']):
-                # Sentinel-2默认波段: B4=Red, B3=Green, B2=Blue
-                if raster.bands_count >= 4:
-                    raster.band_indices = {'red': 4, 'green': 3, 'blue': 2}
-                else:
-                    # 如果波段数少于4，使用前三个波段
-                    raster.band_indices = {'red': min(3, raster.bands_count), 
-                                         'green': min(2, raster.bands_count), 
-                                         'blue': min(1, raster.bands_count)}
-            
-            # 调整索引以适应rasterio的1-based索引和数据集实际波段数
-            for key, value in raster.band_indices.items():
-                if value > raster.bands_count:
-                    raster.band_indices[key] = min(value, raster.bands_count)
-            
-            # 读取选定的波段
-            red_idx = raster.band_indices.get('red', 1)
-            green_idx = raster.band_indices.get('green', 1)
-            blue_idx = raster.band_indices.get('blue', 1)
-            
-            red = raster.rasterio_dataset.read(red_idx)
-            green = raster.rasterio_dataset.read(green_idx)
+            # 读取波段数据
             blue = raster.rasterio_dataset.read(blue_idx)
+            green = raster.rasterio_dataset.read(green_idx)
+            red = raster.rasterio_dataset.read(red_idx)
+            
+            # 记录使用的波段信息
+            raster.band_indices = {'red': red_idx, 'green': green_idx, 'blue': blue_idx}
             
             # 修正：正确堆叠RGB通道 - 注意numpy的RGB顺序
             # 在NumPy中，RGB图像的形状是(height, width, 3)，其中最后一个维度按R,G,B顺序排列
@@ -382,14 +367,13 @@ class RasterLoader:
     @staticmethod
     def _enhance_sentinel_image(array):
         """
-        处理图像显示 - 使用累积计数截断(Cumulative count cut)方法
-        对所有类型图像进行更好的图像增强，参考QGIS的渲染策略
+        处理图像显示 - 不再使用累积计数截断方法增强，而是保持原始数据
         
         Args:
             array: 原始numpy数组
             
         Returns:
-            numpy.ndarray: 处理后的数组
+            numpy.ndarray: 处理后可显示的数组
         """
         try:
             # 检查数据是否有效
@@ -399,25 +383,18 @@ class RasterLoader:
             # 替换无效值（负值或异常大值）
             array = np.nan_to_num(array, nan=0, posinf=0, neginf=0)
             
-            # 判断数据类型和范围
+            # 判断数据类型，只进行最基本的转换使其可显示
             if array.dtype != np.uint8:
-                # 使用Cumulative count cut方法 (2%-98%)
-                # 这与QGIS的默认渲染策略相同
-                p2 = np.percentile(array, 2)    # 2%的数据小于此值
-                p98 = np.percentile(array, 98)  # 98%的数据小于此值
+                # 简单地进行线性缩放以适应0-255范围
+                min_val = np.min(array)
+                max_val = np.max(array)
                 
                 # 避免除零错误
-                if p98 - p2 < 0.0001:
-                    # 退回到简单的最大最小值归一化
-                    min_val = np.min(array)
-                    max_val = np.max(array)
-                    if max_val - min_val < 0.0001:
-                        min_val, max_val = 0, 1
-                    normalized = np.clip((array - min_val) / (max_val - min_val) * 255, 0, 255).astype(np.uint8)
-                else:
-                    # 线性拉伸到0-255范围，使用累积截断值
-                    normalized = np.clip((array - p2) / (p98 - p2) * 255, 0, 255).astype(np.uint8)
+                if max_val - min_val < 0.0001:
+                    min_val, max_val = 0, 1
                 
+                # 线性缩放到0-255范围
+                normalized = np.clip((array - min_val) / (max_val - min_val) * 255, 0, 255).astype(np.uint8)
                 return normalized
             
             return array

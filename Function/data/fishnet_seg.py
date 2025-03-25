@@ -155,6 +155,9 @@ class FishnetSegmentation:
             # 生成网格结果
             self.grid_result = []
             
+            # 直接使用原始图像进行裁剪，不再使用增强的图像
+            original_image = self.image
+            
             for row in range(rows):
                 for col in range(cols):
                     # 计算当前网格的位置
@@ -173,10 +176,10 @@ class FishnetSegmentation:
                     actual_width = min(actual_width, width - x)
                     actual_height = min(actual_height, height - y)
                     
-                    # 裁剪图像
+                    # 裁剪原始图像
                     try:
                         crop_box = (x, y, x + actual_width, y + actual_height)
-                        grid_img = self.image.crop(crop_box)
+                        grid_img = original_image.crop(crop_box)
                         
                         # 检查裁剪结果是否为空
                         if grid_img.size[0] <= 0 or grid_img.size[1] <= 0:
@@ -427,11 +430,8 @@ class FishnetSegmentation:
             if not self.image:
                 return False
             
-            # 创建新图像，与原图大小相同
+            # 使用原始图像，不再使用增强处理
             overview_img = self.image.copy()
-            
-            # 应用图像增强处理
-            overview_img = self._enhance_grid_image(overview_img)
             
             # 在PIL图像上绘制网格线和编号
             from PIL import ImageDraw, ImageFont
@@ -447,9 +447,9 @@ class FishnetSegmentation:
                 font = ImageFont.load_default()
             
             # 红色网格线和编号 - 固定使用纯红色RGB值
-            grid_color = (255, 0, 0)  # 纯红色
-            text_color = (255, 0, 0)  # 纯红色文字
-            text_bg_color = (255, 255, 255, 180)  # 白色半透明背景
+            grid_color = (255, 0, 0)
+            text_color = (255, 0, 0)
+            text_bg_color = (255, 255, 255, 180)
             
             # 绘制网格线和编号
             for i, grid in enumerate(self.grid_result):
@@ -487,11 +487,8 @@ class FishnetSegmentation:
             if not self.image or not self.grid_result:
                 return None
             
-            # 创建新图像，与原图大小相同
+            # 使用原始图像，不再应用任何增强
             overview_img = self.image.copy()
-            
-            # 应用图像增强方法进行处理
-            overview_img = self._enhance_grid_image(overview_img)
             
             # 在PIL图像上绘制网格线和编号
             from PIL import ImageDraw, ImageFont
@@ -531,20 +528,20 @@ class FishnetSegmentation:
                 # 绘制文本
                 draw.text((x+4, y+4), text, fill=text_color, font=font)
             
-            # 将PIL图像转换为UI兼容格式
-            return self.convert_pil_to_qimage_format(overview_img)
+            # 将PIL图像转换为UI兼容格式，标记为已增强以避免重复处理
+            return self.convert_pil_to_qimage_format(overview_img, already_enhanced=False)
             
         except Exception as e:
             self.last_error = f"创建预览示意图出错: {str(e)}"
             return None
     
-    # 辅助方法：将PIL图像转换为QImage格式的方法（用于UI层集成）
-    def convert_pil_to_qimage_format(self, pil_image):
+    def convert_pil_to_qimage_format(self, pil_image, already_enhanced=False):
         """
         将PIL图像转换为QImage兼容的格式（不直接返回QImage对象，保持模型层与UI层的分离）
         
         Args:
             pil_image: PIL图像对象
+            already_enhanced: 不再使用，保留参数是为了兼容性
             
         Returns:
             dict: 包含图像数据和元数据的字典，便于UI层创建QImage
@@ -554,8 +551,7 @@ class FishnetSegmentation:
             if pil_image.mode != 'RGB':
                 pil_image = pil_image.convert('RGB')
             
-            # 应用图像增强方法
-            pil_image = self._enhance_grid_image(pil_image)
+            # 不再应用任何增强处理
             
             # 获取图像数据
             width, height = pil_image.size
@@ -592,7 +588,7 @@ class FishnetSegmentation:
             
             # 将PIL图像转换为UI兼容格式
             pil_image = grid['image_data']
-            ui_grid['image_data'] = self.convert_pil_to_qimage_format(pil_image)
+            ui_grid['image_data'] = self.convert_pil_to_qimage_format(pil_image, already_enhanced=False)
             
             ui_result.append(ui_grid)
         
@@ -607,29 +603,62 @@ class FishnetSegmentation:
 
     def _enhance_grid_image(self, pil_image):
         """
-        使用累积计数截断方法增强网格图像显示
+        此方法不再进行图像增强，仅返回原始图像
         
         Args:
             pil_image: PIL图像对象
             
         Returns:
-            PIL.Image: 处理后的图像对象
+            PIL.Image: 原始图像对象
+        """
+        return pil_image  # 直接返回原始图像，不进行任何处理
+
+    @staticmethod
+    def _enhance_sentinel_image(array):
+        """
+        处理图像显示 - 使用累积计数截断(Cumulative count cut)方法
+        对所有类型图像进行更好的图像增强，参考QGIS的渲染策略
+        
+        Args:
+            array: 原始numpy数组
+            
+        Returns:
+            numpy.ndarray: 处理后的数组
         """
         try:
-            # 如果图像已经由RasterLoader处理过，则不需要再处理
-            if self.raster_data and self.raster_data.is_geotiff:
-                return pil_image
+            # 检查数据是否有效
+            if array is None or array.size == 0:
+                return np.zeros((10, 10, 3), dtype=np.uint8)
+            
+            # 替换无效值（负值或异常大值）
+            array = np.nan_to_num(array, nan=0, posinf=0, neginf=0)
+            
+            # 判断数据类型和范围
+            if array.dtype != np.uint8:
+                # 使用Cumulative count cut方法 (2%-98%)
+                p2 = np.percentile(array, 2)    # 2%的数据小于此值
+                p98 = np.percentile(array, 98)  # 98%的数据小于此值
                 
-            # 转换为numpy数组
-            img_array = np.array(pil_image)
+                # 避免除零错误
+                if p98 - p2 < 0.0001:
+                    # 退回到简单的最大最小值归一化
+                    min_val = np.min(array)
+                    max_val = np.max(array)
+                    if max_val - min_val < 0.0001:
+                        min_val, max_val = 0, 1
+                    normalized = np.clip((array - min_val) / (max_val - min_val) * 255, 0, 255).astype(np.uint8)
+                else:
+                    # 线性拉伸到0-255范围，使用累积截断值
+                    normalized = np.clip((array - p2) / (p98 - p2) * 255, 0, 255).astype(np.uint8)
+                
+                return normalized
             
-            # 使用utils.geo.raster_loader中的增强方法
-            from utils.geo.raster_loader import RasterLoader
-            enhanced_array = RasterLoader._enhance_sentinel_image(img_array)
+            return array
             
-            # 转回PIL图像
-            from PIL import Image
-            return Image.fromarray(enhanced_array)
         except Exception as e:
-            self.last_error = f"图像增强失败: {str(e)}"
-            return pil_image  # 出错时返回原始图像
+            # 如果处理失败，尝试返回原始数组
+            if array is not None:
+                if array.dtype != np.uint8:
+                    return np.clip(array, 0, 255).astype(np.uint8)
+                return array
+            return np.zeros((10, 10, 3), dtype=np.uint8)
