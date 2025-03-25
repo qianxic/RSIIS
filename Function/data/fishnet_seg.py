@@ -234,7 +234,72 @@ class FishnetSegmentation:
         """
         return self.grid_result
     
-    def export_result(self, export_dir, create_subfolders=True, export_shp=True):
+    def _clip_geotiff_with_gdal(self, input_path, output_path, x_off, y_off, width, height):
+        """
+        使用GDAL库裁剪GeoTIFF并保存地理信息
+        
+        Args:
+            input_path: 输入文件路径
+            output_path: 输出文件路径
+            x_off, y_off: 裁剪起始位置的像素坐标
+            width, height: 裁剪区域的宽度和高度
+            
+        Returns:
+            bool: 裁剪是否成功
+        """
+        if not GDAL_AVAILABLE:
+            return False
+            
+        try:
+            # 打开源文件
+            from osgeo import gdal
+            src_ds = gdal.Open(input_path)
+            if not src_ds:
+                self.last_error = f"无法打开输入文件: {input_path}"
+                return False
+            
+            # 获取地理变换和投影信息
+            src_geotransform = src_ds.GetGeoTransform()
+            src_proj = src_ds.GetProjection()
+            bands_count = src_ds.RasterCount
+            
+            # 计算新的地理变换参数
+            new_geotransform = list(src_geotransform)
+            new_geotransform[0] = src_geotransform[0] + x_off * src_geotransform[1]
+            new_geotransform[3] = src_geotransform[3] + y_off * src_geotransform[5]
+            
+            # 创建目标文件
+            driver = gdal.GetDriverByName('GTiff')
+            dst_ds = driver.Create(output_path, width, height, bands_count, 
+                                  src_ds.GetRasterBand(1).DataType)
+            
+            # 设置目标文件的地理信息
+            dst_ds.SetGeoTransform(new_geotransform)
+            dst_ds.SetProjection(src_proj)
+            
+            # 对每个波段进行裁剪
+            for i in range(1, bands_count + 1):
+                src_band = src_ds.GetRasterBand(i)
+                dst_band = dst_ds.GetRasterBand(i)
+                
+                data = src_band.ReadAsArray(x_off, y_off, width, height)
+                dst_band.WriteArray(data)
+                
+                # 复制NoData值
+                nodata_value = src_band.GetNoDataValue()
+                if nodata_value is not None:
+                    dst_band.SetNoDataValue(nodata_value)
+            
+            # 关闭数据集
+            src_ds = None
+            dst_ds = None
+            
+            return True
+        except Exception as e:
+            self.last_error = f"GDAL裁剪出错: {str(e)}"
+            return False
+            
+    def export_result(self, export_dir, create_subfolders=True, export_shp=False):
         """
         导出分割结果
         
@@ -276,62 +341,68 @@ class FishnetSegmentation:
             for grid in self.grid_result:
                 row, col = grid['row'], grid['col']
                 grid_img = grid['image_data']
+                x, y, width, height = grid['position']
                 
                 # 根据是否有地理参考信息，选择不同的保存方式
-                if self.raster_data and self.raster_data.is_geotiff and 'geo_window' in grid and self.raster_data.rasterio_dataset:
+                if self.raster_data and self.raster_data.is_geotiff:
                     # 保存为GeoTIFF
                     save_name = f"{base_name}_{row}_{col}.tif"
                     save_path = os.path.join(grids_dir, save_name)
                     
-                    # 使用rasterio保存带有地理参考信息的裁剪图像
-                    if RASTERIO_AVAILABLE:
-                        import rasterio
-                        window = grid['geo_window']
-                        
-                        # 读取原始数据（保留所有波段）
-                        data = self.raster_data.rasterio_dataset.read(window=window)
-                        
-                        # 写入GeoTIFF
-                        profile = self.raster_data.rasterio_dataset.profile.copy()
-                        profile.update({
-                            'height': window.height,
-                            'width': window.width,
-                            'transform': grid['geo_transform']
-                        })
-                        
-                        with rasterio.open(save_path, 'w', **profile) as dst:
-                            dst.write(data)
+                    # 首先尝试使用GDAL进行裁剪和保存（保留完整地理信息）
+                    if GDAL_AVAILABLE and self.image_path.lower().endswith(('.tif', '.tiff')):
+                        gdal_success = self._clip_geotiff_with_gdal(
+                            self.image_path, save_path, x, y, width, height
+                        )
+                        if gdal_success:
+                            saved_files.append(save_path)
+                            continue
+                    
+                    # 如果GDAL失败或不可用，尝试使用rasterio
+                    if RASTERIO_AVAILABLE and 'geo_window' in grid and self.raster_data.rasterio_dataset:
+                        try:
+                            import rasterio
+                            window = grid['geo_window']
+                            
+                            # 读取原始数据（保留所有波段）
+                            data = self.raster_data.rasterio_dataset.read(window=window)
+                            
+                            # 写入GeoTIFF
+                            profile = self.raster_data.rasterio_dataset.profile.copy()
+                            profile.update({
+                                'height': window.height,
+                                'width': window.width,
+                                'transform': grid['geo_transform']
+                            })
+                            
+                            with rasterio.open(save_path, 'w', **profile) as dst:
+                                dst.write(data)
+                                
+                            saved_files.append(save_path)
+                            continue
+                        except Exception as e:
+                            # 如果rasterio也失败，直接抛出错误
+                            error_msg = f"使用rasterio保存分割图像失败: {str(e)}"
+                            self.last_error = error_msg
+                            raise RuntimeError(error_msg)
                     else:
-                        # 如果rasterio不可用，保存为普通PNG
-                        save_name = f"{base_name}_{row}_{col}.png"
-                        save_path = os.path.join(grids_dir, save_name)
-                        grid_img.save(save_path)
+                        # 如果没有可用的地理信息处理方法，直接抛出错误
+                        error_msg = "无法保存带有地理信息的TIFF图像，GDAL和rasterio都不可用或未提供地理窗口信息"
+                        self.last_error = error_msg
+                        raise RuntimeError(error_msg)
                 else:
-                    # 保存为普通PNG
-                    save_name = f"{base_name}_{row}_{col}.png"
-                    save_path = os.path.join(grids_dir, save_name)
-                    grid_img.save(save_path)
-                
-                saved_files.append(save_path)
+                    # 对于没有地理参考信息的图像，抛出错误
+                    error_msg = "普通图像必须有地理坐标信息才能导出"
+                    self.last_error = error_msg
+                    raise RuntimeError(error_msg)
             
             # 2. 保存分割示意图
             overview_path = os.path.join(save_dir, f"{base_name}_网格分割示意图.png")
             self._create_overview_image(overview_path)
             saved_files.append(overview_path)
             
-            # 3. 如果需要，导出矢量格式
-            if export_shp and self.raster_data and VECTOR_LIBS_AVAILABLE:
-                shp_path = os.path.join(save_dir, f"{base_name}_网格矢量.shp")
-                success, message = VectorUtils.grid_to_shapefile(
-                    self.raster_data, 
-                    self.grid_result, 
-                    shp_path
-                )
-                
-                if success:
-                    saved_files.append(shp_path)
-                else:
-                    self.last_error = f"导出矢量文件失败: {message}"
+            # 3. 不再导出矢量格式
+            # 这部分代码已被注释掉
             
             return True, {
                 "save_dir": save_dir,

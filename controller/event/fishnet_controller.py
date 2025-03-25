@@ -8,6 +8,7 @@ from PIL import Image
 
 # 导入Function层的渔网分割模型
 from Function.data.fishnet_seg import FishnetSegmentation
+from utils.geo import GDAL_AVAILABLE, RASTERIO_AVAILABLE  # 导入GDAL可用性标志
 
 # 导入UI组件
 from ui.widgets.grid_dialogs import (GridParamsDialog, ImageViewer, 
@@ -453,29 +454,36 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
         )
         
         if base_dir:
-            # 使用模型层导出结果
-            success, export_info = self.fishnet_model.export_result(base_dir, create_subfolders=True, export_shp=True)
-            
-            if success:
-                msg = f"渔网分割结果已保存至：{export_info.get('save_dir')}\n共导出 {export_info.get('files_count')} 个文件"
+            try:
+                # 使用模型层导出结果，不导出SHP文件
+                success, export_info = self.fishnet_model.export_result(base_dir, create_subfolders=True, export_shp=False)
                 
-                # 如果是GeoTIFF，添加提示
-                if self.is_geotiff:
-                    msg += "\n\n注意：分割结果保留了原始GeoTIFF的地理参考信息"
+                if success:
+                    msg = f"渔网分割结果已保存至：{export_info.get('save_dir')}\n共导出 {export_info.get('files_count')} 个文件"
                     
-                    # 如果导出了shapefile文件，添加提示
-                    shp_files = [f for f in export_info.get('files', []) if f.endswith('.shp')]
-                    if shp_files:
-                        msg += f"\n已导出矢量文件：{os.path.basename(shp_files[0])}"
-                
-                QMessageBox.information(None, "导出成功", msg)
-                return True
-            else:
-                error_msg = export_info.get('error', '未知错误') if isinstance(export_info, dict) else "未知错误"
+                    # 如果是GeoTIFF，添加提示
+                    if self.is_geotiff:
+                        msg += "\n\n注意：分割结果已保存为TIFF格式并保留了原始GeoTIFF的地理参考信息"
+                        if GDAL_AVAILABLE:
+                            msg += "\n已使用GDAL高精度方法保存地理信息"
+                    
+                    QMessageBox.information(None, "导出成功", msg)
+                    return True
+                else:
+                    error_msg = export_info.get('error', '未知错误') if isinstance(export_info, dict) else "未知错误"
+                    QMessageBox.critical(
+                        None, 
+                        "导出失败", 
+                        f"导出分割结果失败: {error_msg}"
+                    )
+            except Exception as e:
                 QMessageBox.critical(
-                    None, 
-                    "导出失败", 
-                    f"导出分割结果失败: {error_msg}"
+                    None,
+                    "导出错误",
+                    f"导出过程中发生错误:\n{str(e)}\n\n可能原因：\n"
+                    "1. 图像没有有效的地理坐标信息\n"
+                    "2. GDAL或rasterio库工作异常\n"
+                    "3. 权限不足或磁盘空间不足"
                 )
         
         return False
