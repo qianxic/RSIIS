@@ -14,6 +14,7 @@ from controller.event.detection_controller import DetectionController
 from controller.event.data_controller import DataController
 from controller.event.sample_making_controller import SampleMakingController
 from controller.event.setting_controller import SettingController
+from controller.event.change_detection_controller import ChangeDetectionController
 
 
 # 设置Qt插件路径
@@ -48,9 +49,11 @@ def main():
     data_controller = DataController()
     sample_making_controller = SampleMakingController()
     setting_controller = SettingController()
+    change_detection_controller = ChangeDetectionController()
     
     # 先设置控制器的页面引用，再连接信号
     fishnet_controller.setup(page=main_window.fishnet_page)
+    change_detection_controller.setup(page=main_window.change_detection_page)
     
     # 连接控制器和对应的UI页面
     main_window.fishnet_page.connect_signals(fishnet_controller)
@@ -60,6 +63,7 @@ def main():
     main_window.data_page.connect_signals(data_controller)
     main_window.sample_making_page.connect_signals(sample_making_controller)
     main_window.setting_page.connect_signals(setting_controller)
+    main_window.change_detection_page.connect_signals(change_detection_controller)
     
     # 显示主窗口
     main_window.show()

@@ -16,6 +16,7 @@ from ui.pages.detection_page import DetectionPage
 from ui.pages.sample_making_page import SampleMakingPage
 from ui.pages.help_page import HelpPage
 from ui.pages.setting_page import SettingPage
+from ui.pages.change_detection_page import ChangeDetectionPage  # 导入变化检测页面
 
 # 其他页面在实现后也可以导入
 # from ui.pages.home_page import HomePage
@@ -144,10 +145,12 @@ class MainWindow(QMainWindow):
         self.scene_btn = self.create_menu_button("场景分类")
         self.segment_btn = self.create_menu_button("语义分割")
         self.detection_btn = self.create_menu_button("目标检测")
+        self.change_detection_btn = self.create_menu_button("变化检测")  # 添加变化检测按钮
         
         sidebar_layout.addWidget(self.scene_btn)
         sidebar_layout.addWidget(self.segment_btn)
         sidebar_layout.addWidget(self.detection_btn)
+        sidebar_layout.addWidget(self.change_detection_btn)  # 添加变化检测按钮到布局
         
         # 添加分隔线
         separator4 = QFrame()
@@ -208,6 +211,7 @@ class MainWindow(QMainWindow):
         self.sample_making_page = SampleMakingPage()
         self.help_page = HelpPage()
         self.setting_page = SettingPage()
+        self.change_detection_page = ChangeDetectionPage()  # 创建变化检测页面实例
         
         # 将页面添加到堆叠部件
         self.content_stack.addWidget(self.home_page)
@@ -216,6 +220,7 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.scene_page)
         self.content_stack.addWidget(self.segment_page)
         self.content_stack.addWidget(self.detection_page)
+        self.content_stack.addWidget(self.change_detection_page)  # 添加变化检测页面
         self.content_stack.addWidget(self.sample_making_page)
         self.content_stack.addWidget(self.help_page)
         self.content_stack.addWidget(self.setting_page)
@@ -228,16 +233,17 @@ class MainWindow(QMainWindow):
         self.scene_btn.clicked.connect(lambda: self.select_button(self.scene_btn, 3))
         self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 4))
         self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 5))
-        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 6))
-        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 7))
-        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 8))
+        self.change_detection_btn.clicked.connect(lambda: self.select_button(self.change_detection_btn, 6))  # 连接变化检测按钮信号
+        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 7))
+        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 8))
+        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 9))
     
     def select_button(self, button, page_index):
         """选择按钮，并切换对应的功能页面"""
         # 重置所有按钮状态
         for btn in [self.home_btn, self.data_btn, self.fishnet_btn,
-                   self.scene_btn, self.segment_btn, self.detection_btn, self.sample_making_btn,
-                   self.help_btn, self.settings_btn]:
+                   self.scene_btn, self.segment_btn, self.detection_btn, self.change_detection_btn,
+                   self.sample_making_btn, self.help_btn, self.settings_btn]:
             btn.setChecked(False)
         
         # 设置当前按钮为选中状态（如果不是None）

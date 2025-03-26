@@ -193,6 +193,31 @@ LIGHT_STYLE = """
         padding: 10px 5px 5px 5px;
         background-color: transparent;
     }
+    /* 添加section header和separator的样式 */
+    QLabel#section_header {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #4285F4;
+        padding: 10px 5px 5px 10px;
+        font-family: "Microsoft YaHei", "微软雅黑", "SimHei", "黑体", Arial, sans-serif;
+        background-color: transparent;
+    }
+    QFrame#section_separator {
+        background-color: #E5E5E5;
+        min-height: 2px;
+        max-height: 2px;
+        margin: 10px 5px;
+    }
+    QScrollArea {
+        border: none;
+        background-color: transparent;
+    }
+    QFrame#section_frame {
+        background-color: #F8F9FA;
+        border-radius: 8px;
+        margin: 5px 0px;
+        padding: 5px;
+    }
 """
 
 # 暗色主题样式表
@@ -423,5 +448,30 @@ DARK_STYLE = """
     }
     QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
         width: 0px;
+    }
+    /* 添加section header和separator的样式 */
+    QLabel#section_header {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #4285F4;
+        padding: 10px 5px 5px 10px;
+        font-family: "Microsoft YaHei", "微软雅黑", "SimHei", "黑体", Arial, sans-serif;
+        background-color: transparent;
+    }
+    QFrame#section_separator {
+        background-color: #3D3D4D;
+        min-height: 2px;
+        max-height: 2px;
+        margin: 10px 5px;
+    }
+    QScrollArea {
+        border: none;
+        background-color: transparent;
+    }
+    QFrame#section_frame {
+        background-color: #27272F;
+        border-radius: 8px;
+        margin: 5px 0px;
+        padding: 5px;
     }
 """ 
