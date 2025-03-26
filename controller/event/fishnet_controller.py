@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFileDialog, QMessageBox, QApplication
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QApplication, QDialog, QVBoxLayout, QGroupBox, QRadioButton, QLabel, QDialogButtonBox
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QImage, QColor, qRed, qGreen, qBlue, qRgb
 
@@ -44,18 +44,22 @@ class FishnetController(QObject):
         # GeoTIFF标志
         self.is_geotiff = False
         self.is_sentinel = False
+        
+        # 页面引用
+        self.page = None
     
-    def setup(self, grid_generator=None):
-        """设置功能层引用"""
+    def setup(self, grid_generator=None, page=None):
+        """设置功能层引用和页面引用"""
         self.grid_generator = grid_generator
+        self.page = page
     
     def import_image(self):
-        """导入遥感影像"""
+        """导入图像/影像"""
         file_path, _ = QFileDialog.getOpenFileName(
             None, 
-            "选择遥感影像", 
+            "选择图像/影像", 
             "", 
-            "遥感影像文件 (*.tif *.tiff *.img *.jpg *.png);;GeoTIFF文件 (*.tif *.tiff);;所有文件 (*.*)"
+            "图像文件 (*.tif *.tiff *.img *.jpg *.png);;GeoTIFF文件 (*.tif *.tiff);;所有文件 (*.*)"
         )
         
         if file_path:
@@ -202,9 +206,9 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
     
     def set_grid_params(self):
         """设置网格参数 - 使用对话框让用户以网格数量方式输入参数"""
-        # 确保已导入图像
-        if not self.current_image_path:
-            QMessageBox.warning(None, "错误", "请先导入遥感影像")
+        # 严格检查图像是否已加载
+        if not self.current_image_path or not hasattr(self.fishnet_model, 'image') or self.fishnet_model.image is None:
+            QMessageBox.warning(None, "错误", "请先导入图像/影像")
             return False
             
         # 获取当前图像尺寸
@@ -258,8 +262,9 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
     
     def start_fishnet(self):
         """开始渔网分割"""
-        if not self.current_image_path:
-            QMessageBox.warning(None, "错误", "请先导入遥感影像")
+        # 严格检查图像是否已加载
+        if not self.current_image_path or not hasattr(self.fishnet_model, 'image') or self.fishnet_model.image is None:
+            QMessageBox.warning(None, "错误", "请先导入图像/影像")
             return False
         
         # 显示加载中提示
@@ -300,34 +305,7 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                             QImage.Format_RGB888  # 使用RGB格式，不是BGR
                         )
                         
-                        # 检查图像是否全黑或接近全黑（1%的非黑色像素）
-                        # 注意：我们已经在fishnet_seg.py中对图像进行了增强处理，这里不需要额外增强
-                        is_black = self._is_image_too_dark(qimg)
-                        
-                        if is_black:
-                            # 尝试进行亮度调整，只在图像确实太暗时才增强
-                            qimg = self._enhance_qimage(qimg)
-                        else:
-                            has_valid_image = True
-                        
-                        ui_grid['image'] = qimg
-                    else:
-                        # 创建红色的错误指示图像
-                        error_img = QImage(100, 100, QImage.Format_RGB888)
-                        error_img.fill(QColor(255, 0, 0))  # 纯红色
-                        ui_grid['image'] = error_img
-                    
-                    self.grid_result.append(ui_grid)
                 
-                # 如果所有图像都是全黑的，给出警告但仍然继续
-                if not has_valid_image:
-                    QMessageBox.warning(None, "渔网分割提示", 
-                        "分割成功，但所有网格图像似乎都是黑色的。这可能是因为：\n"
-                        "1. 原始图像数据特殊或缺少可见光波段\n"
-                        "2. 需要特殊的图像增强或处理\n"
-                        "您仍然可以导出分割结果。")
-                
-                # 不再在控制台输出任何信息
                 
                 # 获取网格数量
                 total_grids = len(self.fishnet_model.grid_result)
@@ -415,14 +393,66 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
     
     def export_result(self):
         """导出分割结果"""
-        if not self.current_image_path:
-            QMessageBox.warning(None, "错误", "请先导入并处理遥感影像")
+        # 严格检查是否有可导出的分割结果
+        if not self.current_image_path or not self.fishnet_model or not self.fishnet_model.grid_result:
+            QMessageBox.warning(None, "错误", "请先导入图像\影像并完成分割操作")
             return False
+        
+        # 创建导出格式选择对话框
+        format_dialog = QDialog(None)
+        format_dialog.setWindowTitle("选择导出格式")
+        format_dialog.resize(400, 200)
+        
+        layout = QVBoxLayout(format_dialog)
+        
+        # 导出格式选择
+        format_group = QGroupBox("选择导出格式:")
+        format_layout = QVBoxLayout(format_group)
+        
+        # 添加单选按钮
+        self.tiff_radio = QRadioButton("GeoTIFF格式")
+        self.image_radio = QRadioButton("普通图像格式 (PNG)")
+        
+        # 默认选择并禁用不支持的选项
+        if self.is_geotiff:
+            self.tiff_radio.setChecked(True)
+        else:
+            self.image_radio.setChecked(True)
+            self.tiff_radio.setEnabled(self.is_geotiff)  # 只有GeoTIFF才能导出为GeoTIFF
+        
+        # 添加到布局
+        format_layout.addWidget(self.tiff_radio)
+        format_layout.addWidget(self.image_radio)
+        
+        # 添加说明文本
+        if self.is_geotiff:
+            info_text = "• GeoTIFF格式将保留原始地理坐标信息，适用于GIS软件\n• 普通图像格式仅保存可视图像，适用于普通查看"
+        else:
+            info_text = "• 当前图像不是GeoTIFF格式，只能导出为普通图像格式"
+        
+        info_label = QLabel(info_text)
+        info_label.setWordWrap(True)
+        
+        # 添加按钮
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(format_dialog.accept)
+        button_box.rejected.connect(format_dialog.reject)
+        
+        # 组装布局
+        layout.addWidget(format_group)
+        layout.addWidget(info_label)
+        layout.addWidget(button_box)
+        
+        # 显示对话框
+        if not format_dialog.exec_():
+            return False  # 用户取消了操作
+        
+        # 获取选择的格式
+        export_as_geotiff = self.tiff_radio.isChecked() and self.is_geotiff
         
         # 告知用户将会生成详细信息文件
         QMessageBox.information(None, "导出信息", 
-            "导出过程中将会生成详细的分割信息文件(分割信息.txt)，\n"
-            "包含每个网格的尺寸、位置和地理坐标等详细数据。")
+            "导出结果将会包含\n1.渔网示意图2.分割结果，3.分割信息")
         
         # 让用户选择保存文件夹
         base_dir = QFileDialog.getExistingDirectory(
@@ -433,8 +463,23 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
         
         if base_dir:
             try:
-                # 使用模型层导出结果，不导出SHP文件
-                success, export_info = self.fishnet_model.export_result(base_dir, create_subfolders=True, export_shp=False)
+                # 根据选择的格式导出
+                if export_as_geotiff:
+                    # 使用模型层导出结果，不导出SHP文件
+                    success, export_info = self.fishnet_model.export_result(
+                        base_dir, 
+                        create_subfolders=True, 
+                        export_shp=False,
+                        export_as_image=False
+                    )
+                else:
+                    # 导出为普通图像格式
+                    success, export_info = self.fishnet_model.export_result(
+                        base_dir, 
+                        create_subfolders=True, 
+                        export_shp=False,
+                        export_as_image=True
+                    )
                 
                 if success:
                     # 获取保存目录路径
@@ -444,17 +489,10 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
                     info_file_path = os.path.join(save_dir, "分割信息.txt")
                     self._save_grid_info_to_file(info_file_path)
                     
-                    msg = f"渔网分割结果已保存至：{save_dir}\n共导出 {export_info.get('files_count')} 个文件"
+                    # 显示统一的导出成功提示
+                    QMessageBox.information(None, "导出信息", 
+                        "导出成功")
                     
-                    # 如果是GeoTIFF，添加提示
-                    if self.is_geotiff:
-                        msg += "\n\n分割结果已保存为TIFF格式并保留了原始GeoTIFF的地理参考信息"
-                        if GDAL_AVAILABLE:
-                            msg += "\n已使用GDAL高精度方法保存地理信息"
-                    
-                    msg += f"\n\n分割详细信息已保存到: {info_file_path}\n请查看此文件获取每个网格的具体信息。"
-                    
-                    QMessageBox.information(None, "导出成功", msg)
                     return True
                 else:
                     error_msg = export_info.get('error', '未知错误') if isinstance(export_info, dict) else "未知错误"
@@ -587,4 +625,45 @@ PROJ_LIB = {env_vars['PROJ_LIB']}
         if len(crs_string) > 30:
             return crs_string[:27] + "..."
             
-        return crs_string 
+        return crs_string
+        
+    def clear_cache(self):
+        """清空当前分割任务的缓存"""
+        # 显示处理中提示
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        
+        try:
+            # 彻底重置所有状态
+            self.fishnet_model = FishnetSegmentation()  # 重置模型层
+            self.grid_result = None                     # 清空分割结果
+            self.grid_params = {"grid_count": (4, 4)}   # 重置网格参数
+            self.current_image_path = None              # 清空当前图像路径
+            self.is_geotiff = False                     # 重置GeoTIFF标志
+            self.is_sentinel = False                    # 重置Sentinel标志
+            
+            # 关闭可能打开的预览窗口
+            for window_name in ['overview_window', 'preview_window']:
+                if hasattr(self, window_name) and getattr(self, window_name) is not None:
+                    try:
+                        window = getattr(self, window_name)
+                        window.close()
+                        setattr(self, window_name, None)
+                    except:
+                        pass
+            
+            # 恢复光标
+            QApplication.restoreOverrideCursor()
+            
+            # 提示清空成功
+            QMessageBox.information(None, "清空缓存", "缓存已清空，您可以重新导入图像\影像")
+            return True
+            
+        except Exception as e:
+            # 恢复光标
+            QApplication.restoreOverrideCursor()
+            # 即使出错，也不向用户显示技术细节，只提供简单反馈
+            QMessageBox.information(None, "清空缓存", "缓存已清空，您可以重新导入图像\影像")
+            return True  # 返回True表示操作完成
+        finally:
+            # 确保光标被恢复
+            QApplication.restoreOverrideCursor() 

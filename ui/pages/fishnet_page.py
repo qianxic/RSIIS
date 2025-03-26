@@ -19,7 +19,7 @@ class FishnetPage(QWidget):
         title.setObjectName("page_title")
         layout.addWidget(title)
         
-        subtitle = QLabel("对遥感影像进行网格化处理，便于精确分析，支持常规图像和GeoTIFF格式")
+        subtitle = QLabel("对图像/影像进行网格化处理，便于精确分析，支持常规图像和GeoTIFF格式")
         subtitle.setWordWrap(True)
         subtitle.setObjectName("subtitle")
         layout.addWidget(subtitle)
@@ -40,7 +40,7 @@ class FishnetPage(QWidget):
         button_layout.setSpacing(15)
         
         # 导入按钮
-        self.import_btn = QPushButton("导入遥感影像")
+        self.import_btn = QPushButton("导入图像/影像")
         self.import_btn.setObjectName("operation_btn")
         self.import_btn.setFixedWidth(180)
         self.import_btn.setFixedHeight(40)
@@ -71,6 +71,14 @@ class FishnetPage(QWidget):
         self.export_btn.setCursor(QCursor(Qt.PointingHandCursor))
         button_layout.addWidget(self.export_btn)
         
+        # 清空缓存按钮
+        self.clear_cache_btn = QPushButton("清空缓存")
+        self.clear_cache_btn.setObjectName("operation_btn")
+        self.clear_cache_btn.setFixedWidth(180)
+        self.clear_cache_btn.setFixedHeight(40)
+        self.clear_cache_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        button_layout.addWidget(self.clear_cache_btn)
+        
         button_layout.addStretch()  # 添加弹性空间
         content_layout.addWidget(button_container)
         
@@ -82,4 +90,20 @@ class FishnetPage(QWidget):
         self.import_btn.clicked.connect(controller.import_image)
         self.grid_btn.clicked.connect(controller.set_grid_params)
         self.process_btn.clicked.connect(controller.start_fishnet)
-        self.export_btn.clicked.connect(controller.export_result) 
+        self.export_btn.clicked.connect(controller.export_result)
+        self.clear_cache_btn.clicked.connect(controller.clear_cache)
+
+    def reset_ui(self):
+        """重置UI状态，清除所有分割结果显示"""
+        # 由于当前页面没有image_view和info_widget，
+        # 我们只需要执行最小的清理操作
+        
+        # 提示用户缓存已清空
+        from PySide6.QtWidgets import QLabel
+        
+        # 清理上一次可能添加的临时标签
+        for child in self.findChildren(QLabel, "temp_reset_label"):
+            child.deleteLater()
+            
+        # 这里可以自定义其他清理逻辑
+        # 但不要引用不存在的属性 

@@ -42,16 +42,15 @@ def main():
     
     # 创建各个页面的控制器实例
     fishnet_controller = FishnetController()
-    # 如果需要设置功能层，只需传递grid_generator
-    # grid_generator = GridGenerator()
-    # fishnet_controller.setup(grid_generator)
-    
     scene_controller = SceneController()
     segment_controller = SegmentController()
     detection_controller = DetectionController()
     data_controller = DataController()
     sample_making_controller = SampleMakingController()
     setting_controller = SettingController()
+    
+    # 先设置控制器的页面引用，再连接信号
+    fishnet_controller.setup(page=main_window.fishnet_page)
     
     # 连接控制器和对应的UI页面
     main_window.fishnet_page.connect_signals(fishnet_controller)

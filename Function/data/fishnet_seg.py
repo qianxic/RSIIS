@@ -302,7 +302,7 @@ class FishnetSegmentation:
             self.last_error = f"GDAL裁剪出错: {str(e)}"
             return False
             
-    def export_result(self, export_dir, create_subfolders=True, export_shp=False):
+    def export_result(self, export_dir, create_subfolders=True, export_shp=False, export_as_image=False):
         """
         导出分割结果
         
@@ -310,6 +310,7 @@ class FishnetSegmentation:
             export_dir: 导出目录
             create_subfolders: 是否创建子文件夹
             export_shp: 是否导出Shapefile矢量格式
+            export_as_image: 是否导出为普通图像格式（PNG）而不是GeoTIFF
             
         Returns:
             bool: 导出是否成功
@@ -346,8 +347,8 @@ class FishnetSegmentation:
                 grid_img = grid['image_data']
                 x, y, width, height = grid['position']
                 
-                # 根据是否有地理参考信息，选择不同的保存方式
-                if self.raster_data and self.raster_data.is_geotiff:
+                # 根据是否有地理参考信息以及用户选择的格式，选择不同的保存方式
+                if self.raster_data and self.raster_data.is_geotiff and not export_as_image:
                     # 保存为GeoTIFF
                     save_name = f"{base_name}_{row}_{col}.tif"
                     save_path = os.path.join(grids_dir, save_name)
@@ -384,34 +385,43 @@ class FishnetSegmentation:
                             saved_files.append(save_path)
                             continue
                         except Exception as e:
-                            # 如果rasterio也失败，直接抛出错误
-                            error_msg = f"使用rasterio保存分割图像失败: {str(e)}"
-                            self.last_error = error_msg
-                            raise RuntimeError(error_msg)
-                    else:
-                        # 如果没有可用的地理信息处理方法，直接抛出错误
-                        error_msg = "无法保存带有地理信息的TIFF图像，GDAL和rasterio都不可用或未提供地理窗口信息"
-                        self.last_error = error_msg
-                        raise RuntimeError(error_msg)
-                else:
-                    # 对于没有地理参考信息的图像，抛出错误
-                    error_msg = "普通图像必须有地理坐标信息才能导出"
-                    self.last_error = error_msg
-                    raise RuntimeError(error_msg)
+                            # 如果rasterio也失败，记录错误但继续以普通图像格式保存
+                            self.last_error = f"使用rasterio保存分割图像失败: {str(e)}"
+                    
+                    # 如果所有地理信息保存方法都失败，退回到保存为常规图像
+                    self.last_error = "无法保存为GeoTIFF，将保存为常规图像"
+                
+                # 保存为常规图像格式（PNG）
+                save_name = f"{base_name}_{row}_{col}.png"
+                save_path = os.path.join(grids_dir, save_name)
+                grid_img.save(save_path)
+                saved_files.append(save_path)
             
             # 2. 保存分割示意图
             overview_path = os.path.join(save_dir, f"{base_name}_网格分割示意图.png")
             self._create_overview_image(overview_path)
             saved_files.append(overview_path)
             
-            # 3. 不再导出矢量格式
-            # 这部分代码已被注释掉
+            # 3. 如果需要，且是GeoTIFF，导出矢量文件
+            if export_shp and not export_as_image and VECTOR_LIBS_AVAILABLE and self.raster_data and self.raster_data.is_geotiff:
+                try:
+                    shp_folder = os.path.join(save_dir, "vector")
+                    if not os.path.exists(shp_folder):
+                        os.makedirs(shp_folder)
+                    
+                    # 导出矢量文件
+                    shp_path = os.path.join(shp_folder, f"{base_name}_grids.shp")
+                    self._export_grid_shapefile(shp_path)
+                    saved_files.append(shp_path)
+                except Exception as e:
+                    self.last_error = f"导出矢量文件失败: {str(e)}"
             
             return True, {
                 "save_dir": save_dir,
                 "files_count": len(saved_files),
                 "files": saved_files
             }
+        
         except Exception as e:
             self.last_error = f"导出结果出错: {str(e)}"
             return False, {"error": str(e)}
@@ -437,10 +447,14 @@ class FishnetSegmentation:
             from PIL import ImageDraw, ImageFont
             draw = ImageDraw.Draw(overview_img)
             
+            # 获取图像尺寸，计算适当的字体大小
+            img_width, img_height = overview_img.size
+            # 字体大小基于图像宽度，确保在小图像上字体不会太小，在大图像上不会太大
+            font_size = max(12, min(72, int(img_width / 50)))
+            
             # 尝试加载字体，如果失败则使用默认字体
             try:
                 # 尝试使用系统字体
-                font_size = 12
                 font = ImageFont.truetype("arial.ttf", font_size)
             except:
                 # 如果无法加载TrueType字体，使用默认字体
@@ -456,17 +470,21 @@ class FishnetSegmentation:
                 x, y, grid_width, grid_height = grid['position']
                 
                 # 绘制网格边框，使用红色
-                draw.rectangle([x, y, x + grid_width, y + grid_height], outline=grid_color, width=2)
+                # 线宽也随图像尺寸变化
+                line_width = max(1, int(img_width / 1000))
+                draw.rectangle([x, y, x + grid_width, y + grid_height], outline=grid_color, width=line_width)
                 
                 # 绘制编号背景
                 text = f"{i+1}"
                 
                 # 绘制背景矩形
                 text_width, text_height = font.getsize(text) if hasattr(font, 'getsize') else (font_size*len(text), font_size)
-                draw.rectangle([x+2, y+2, x+2+text_width+4, y+2+text_height+4], fill=text_bg_color)
+                # 确保背景矩形足够大
+                padding = max(2, int(font_size / 4))
+                draw.rectangle([x+padding, y+padding, x+padding+text_width+padding*2, y+padding+text_height+padding*2], fill=text_bg_color)
                 
                 # 绘制文本
-                draw.text((x+4, y+4), text, fill=text_color, font=font)
+                draw.text((x+padding*2, y+padding*2), text, fill=text_color, font=font)
             
             # 保存示意图
             overview_img.save(save_path)
@@ -494,10 +512,14 @@ class FishnetSegmentation:
             from PIL import ImageDraw, ImageFont
             draw = ImageDraw.Draw(overview_img)
             
+            # 获取图像尺寸，计算适当的字体大小
+            img_width, img_height = overview_img.size
+            # 字体大小基于图像宽度，确保在小图像上字体不会太小，在大图像上不会太大
+            font_size = max(16, min(96, int(img_width / 40)))
+            
             # 尝试加载字体，如果失败则使用默认字体
             try:
                 # 尝试使用系统字体
-                font_size = 16
                 font = ImageFont.truetype("arial.ttf", font_size)
             except:
                 # 如果无法加载TrueType字体，使用默认字体
@@ -514,21 +536,26 @@ class FishnetSegmentation:
             for i, grid in enumerate(self.grid_result):
                 x, y, grid_width, grid_height = grid['position']
                 
+                # 线宽也随图像尺寸变化
+                line_width = max(2, int(img_width / 800))
+                
                 # 绘制网格边框，使用红色
-                # 注意：指定宽度为2像素确保线条清晰可见
-                draw.rectangle([x, y, x + grid_width, y + grid_height], outline=grid_color, width=2)
+                # 注意：指定宽度为line_width像素确保线条清晰可见
+                draw.rectangle([x, y, x + grid_width, y + grid_height], outline=grid_color, width=line_width)
                 
                 # 绘制编号背景
                 text = f"{i+1}"
                 
                 # 绘制背景矩形
                 text_width, text_height = font.getsize(text) if hasattr(font, 'getsize') else (font_size*len(text), font_size)
-                draw.rectangle([x+2, y+2, x+2+text_width+4, y+2+text_height+4], fill=text_bg_color)
+                # 确保背景矩形足够大
+                padding = max(4, int(font_size / 3))
+                draw.rectangle([x+padding, y+padding, x+padding+text_width+padding*2, y+padding+text_height+padding*2], fill=text_bg_color)
                 
                 # 绘制文本
-                draw.text((x+4, y+4), text, fill=text_color, font=font)
+                draw.text((x+padding*2, y+padding*2), text, fill=text_color, font=font)
             
-            # 将PIL图像转换为UI兼容格式，标记为已增强以避免重复处理
+            # 将PIL图像转换为UI兼容格式
             return self.convert_pil_to_qimage_format(overview_img, already_enhanced=False)
             
         except Exception as e:
@@ -662,3 +689,32 @@ class FishnetSegmentation:
                     return np.clip(array, 0, 255).astype(np.uint8)
                 return array
             return np.zeros((10, 10, 3), dtype=np.uint8)
+
+    def _export_grid_shapefile(self, output_path):
+        """
+        导出网格为Shapefile格式
+        
+        Args:
+            output_path: 输出文件路径
+            
+        Returns:
+            bool: 导出是否成功
+        """
+        if not VECTOR_LIBS_AVAILABLE:
+            self.last_error = "无法导出Shapefile，缺少fiona库"
+            return False
+            
+        if not self.raster_data or not self.raster_data.is_geotiff:
+            self.last_error = "只有带有地理坐标信息的图像才能导出为Shapefile"
+            return False
+            
+        try:
+            # 利用VectorUtils导出网格为Shapefile
+            return VectorUtils.export_grid_to_shapefile(
+                output_path, 
+                self.grid_result, 
+                self.raster_data
+            )
+        except Exception as e:
+            self.last_error = f"导出Shapefile失败: {str(e)}"
+            return False
