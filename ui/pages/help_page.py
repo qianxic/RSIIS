@@ -103,6 +103,30 @@ class HelpPage(QWidget):
         det_desc.setStyleSheet("background-color: transparent;")
         scroll_layout.addWidget(det_desc)
         
+        # 添加分隔线
+        separator3 = QFrame()
+        separator3.setFrameShape(QFrame.HLine)
+        separator3.setFrameShadow(QFrame.Sunken)
+        separator3.setObjectName("separator")
+        scroll_layout.addWidget(separator3)
+        
+        # 4. 变化检测图片及说明
+        section_title4 = QLabel("变化检测")
+        section_title4.setObjectName("section_title")
+        scroll_layout.addWidget(section_title4)
+        
+        # 添加可点击的变化检测图片
+        image_path4 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\change_detection_process.png"
+        self.add_clickable_image(scroll_layout, image_path4, width=700)
+        
+        # 添加变化检测说明 (使用SelectableLabel使文本可选)
+        change_desc_text = "变化检测用于对比多时相遥感影像，自动识别地物变化区域。系统采用深度学习和传统图像处理相结合的方法，通过对前后期影像的对比分析，高效提取变化信息，支持城市扩张、环境监测、资源调查等多种应用场景。"
+        change_desc = SelectableLabel(change_desc_text)
+        change_desc.setWordWrap(True)
+        change_desc.setObjectName("desc_text")
+        change_desc.setStyleSheet("background-color: transparent;")
+        scroll_layout.addWidget(change_desc)
+        
         # 添加一些底部间距
         scroll_layout.addStretch()
         
