@@ -1,0 +1,8 @@
+{
+    "host": "localhost",
+    "port": 8080,
+    "base_url": "/api/v1",
+    "api_key": "",
+    "timeout": 30,
+    "use_ssl": false
+} 

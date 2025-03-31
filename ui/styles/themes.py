@@ -161,9 +161,10 @@ LIGHT_STYLE = """
         font-size: 11pt;
     }
     QFrame#separator {
-        background-color: #E5E5E5;
+        background-color: #E0E0E0;
         height: 1px;
         margin: 0px 10px;
+        border-radius: 0.5px;
     }
     QFrame#settings_area {
         background-color: #F8F9FA;
@@ -203,7 +204,7 @@ LIGHT_STYLE = """
         background-color: transparent;
     }
     QFrame#section_separator {
-        background-color: #E5E5E5;
+        background-color: #CCCCCC;
         min-height: 2px;
         max-height: 2px;
         margin: 10px 5px;
@@ -215,10 +216,13 @@ LIGHT_STYLE = """
     QFrame#section_frame {
         background-color: #F8F9FA;
         border-radius: 8px;
-        margin: 5px 0px;
-        padding: 5px;
+        margin: 10px 5px;
+        padding: 15px;
     }
 """
+
+
+
 
 # 暗色主题样式表
 DARK_STYLE = """
@@ -383,6 +387,7 @@ DARK_STYLE = """
         background-color: #33333C;
         height: 1px;
         margin: 0px 10px;
+        border-radius: 0.5px;
     }
     QFrame#settings_area {
         background-color: #2A2A33;
@@ -471,7 +476,7 @@ DARK_STYLE = """
     QFrame#section_frame {
         background-color: #27272F;
         border-radius: 8px;
-        margin: 5px 0px;
-        padding: 5px;
+        margin: 10px 5px;
+        padding: 15px;
     }
 """ 

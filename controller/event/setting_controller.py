@@ -6,6 +6,15 @@ class SettingController:
     def __init__(self):
         """初始化控制器"""
         self.is_logged_in = False
+        self.page = None
+    
+    def setup(self, page=None):
+        """设置控制器
+        
+        Args:
+            page: 页面实例
+        """
+        self.page = page
     
     def manage_account(self):
         """管理账户"""

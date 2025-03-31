@@ -1,16 +1,17 @@
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 # 注释掉API导入，避免启动错误
-# from Function.api.api_classification import ApiClassificationModel
+# from Function.api.api_detection import ApiDetectionModel
 
-class SceneController:
-    """场景分类控制器类"""
+class ObjectDetectionController:
+    """目标检测控制器类"""
     
     def __init__(self):
         """初始化控制器"""
         self.current_image = None
         # 注释掉API初始化，避免启动错误
-        # self.api_model = ApiClassificationModel()
+        # self.api_model = ApiDetectionModel()
         self.page = None
+        self.last_error = None
     
     def setup(self, page=None):
         """设置控制器
@@ -19,6 +20,11 @@ class SceneController:
             page: 页面实例
         """
         self.page = page
+        # API暂不初始化
+        # try:
+        #     self.api_model = ApiDetectionModel()
+        # except Exception as e:
+        #     self.last_error = str(e)
     
     def import_image(self):
         """导入遥感影像"""
@@ -36,22 +42,26 @@ class SceneController:
             return True
         return False
     
-    def start_classification(self):
-        """开始场景分类"""
+    def start_detection(self):
+        """开始目标检测"""
         if not self.current_image:
             QMessageBox.warning(None, "操作失败", "请先导入遥感影像")
             return False
         
-        # API暂不可用的提示
-        QMessageBox.information(None, "API未连接", "API服务暂未连接，无法执行场景分类。")
-        return False
+        try:
+            # API暂不可用的提示
+            QMessageBox.information(None, "API未连接", "API服务暂未连接，无法执行目标检测。")
+            return False
+        except Exception as e:
+            QMessageBox.critical(None, "操作失败", f"目标检测失败: {str(e)}")
+            return False
     
     def export_result(self):
-        """导出分类结果"""
+        """导出检测结果"""
         if not self.current_image:
             QMessageBox.warning(None, "操作失败", "请先导入遥感影像")
             return False
         
         # API暂不可用的提示
-        QMessageBox.information(None, "API未连接", "API服务暂未连接，无法导出分类结果。")
+        QMessageBox.information(None, "API未连接", "API服务暂未连接，无法导出检测结果。")
         return False 

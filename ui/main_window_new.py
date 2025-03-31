@@ -8,12 +8,13 @@ from ui.styles.themes import LIGHT_STYLE, DARK_STYLE
 
 # 导入页面组件
 from ui.pages.home_page import HomePage
-from ui.pages.data_page import DataPage
+# 删除数据页面导入
+# from ui.pages.data_page import DataPage
 from ui.pages.fishnet_page import FishnetPage
 from ui.pages.scene_page import ScenePage
 from ui.pages.segment_page import SegmentPage
 from ui.pages.detection_page import DetectionPage
-from ui.pages.sample_making_page import SampleMakingPage
+from ui.pages.batch_process_page import BatchProcessPage
 from ui.pages.help_page import HelpPage
 from ui.pages.setting_page import SettingPage
 from ui.pages.change_detection_page import ChangeDetectionPage  # 导入变化检测页面
@@ -112,7 +113,7 @@ class MainWindow(QMainWindow):
         self.separator = QFrame()
         self.separator.setFrameShape(QFrame.HLine)
         self.separator.setFrameShadow(QFrame.Sunken)
-        self.separator.setObjectName("separator")  # 添加对象名以便于样式表选择
+        self.separator.setObjectName("separator")  # 使用样式表中的分隔线样式
         sidebar_layout.addWidget(self.separator)
         sidebar_layout.addSpacing(10)  # 增加间距
         
@@ -124,21 +125,23 @@ class MainWindow(QMainWindow):
         separator2 = QFrame()
         separator2.setFrameShape(QFrame.HLine)
         separator2.setFrameShadow(QFrame.Sunken)
-        separator2.setObjectName("separator")
+        separator2.setObjectName("separator")  # 使用样式表中的分隔线样式
         sidebar_layout.addWidget(separator2)
         
         # 数据处理组按钮
-        self.data_btn = self.create_menu_button("数据获取")
+        # 删除数据获取按钮
+        # self.data_btn = self.create_menu_button("数据获取")
         self.fishnet_btn = self.create_menu_button("渔网分割")
         
-        sidebar_layout.addWidget(self.data_btn)
+        # 删除数据获取按钮
+        # sidebar_layout.addWidget(self.data_btn)
         sidebar_layout.addWidget(self.fishnet_btn)
         
         # 添加分隔线
         separator3 = QFrame()
         separator3.setFrameShape(QFrame.HLine)
         separator3.setFrameShadow(QFrame.Sunken)
-        separator3.setObjectName("separator")
+        separator3.setObjectName("separator")  # 使用样式表中的分隔线样式
         sidebar_layout.addWidget(separator3)
         
         # 分析解译组按钮
@@ -156,18 +159,18 @@ class MainWindow(QMainWindow):
         separator4 = QFrame()
         separator4.setFrameShape(QFrame.HLine)
         separator4.setFrameShadow(QFrame.Sunken)
-        separator4.setObjectName("separator")
+        separator4.setObjectName("separator")  # 使用样式表中的分隔线样式
         sidebar_layout.addWidget(separator4)
         
-        # 批量解译
-        self.sample_making_btn = self.create_menu_button("批量影像解译")
-        sidebar_layout.addWidget(self.sample_making_btn)
+        # 批量处理页面按钮
+        self.batch_btn = self.create_menu_button("批量处理管理")
+        sidebar_layout.addWidget(self.batch_btn)
         
         # 添加分隔线
         separator5 = QFrame()
         separator5.setFrameShape(QFrame.HLine)
         separator5.setFrameShadow(QFrame.Sunken)
-        separator5.setObjectName("separator")
+        separator5.setObjectName("separator")  # 使用样式表中的分隔线样式
         sidebar_layout.addWidget(separator5)
         
         # 添加弹性空间
@@ -203,47 +206,50 @@ class MainWindow(QMainWindow):
         """创建所有页面并添加到堆叠部件中"""
         # 使用模块化的页面组件
         self.home_page = HomePage()
-        self.data_page = DataPage()
+        # 删除数据页面导入
+        # self.data_page = DataPage()
         self.fishnet_page = FishnetPage()
         self.scene_page = ScenePage()
         self.segment_page = SegmentPage()
         self.detection_page = DetectionPage()
-        self.sample_making_page = SampleMakingPage()
         self.help_page = HelpPage()
         self.setting_page = SettingPage()
         self.change_detection_page = ChangeDetectionPage()  # 创建变化检测页面实例
         
+        # 创建批量处理页面
+        self.batch_page = BatchProcessPage()
+        
         # 将页面添加到堆叠部件
         self.content_stack.addWidget(self.home_page)
-        self.content_stack.addWidget(self.data_page)
+        # 删除数据页面导入
+        # self.content_stack.addWidget(self.data_page)
         self.content_stack.addWidget(self.fishnet_page)
         self.content_stack.addWidget(self.scene_page)
         self.content_stack.addWidget(self.segment_page)
         self.content_stack.addWidget(self.detection_page)
         self.content_stack.addWidget(self.change_detection_page)  # 添加变化检测页面
-        self.content_stack.addWidget(self.sample_making_page)
+        self.content_stack.addWidget(self.batch_page)  # 添加批量处理页面
         self.content_stack.addWidget(self.help_page)
         self.content_stack.addWidget(self.setting_page)
     
     def connect_signals(self):
         """连接所有信号槽"""
         self.home_btn.clicked.connect(lambda: self.select_button(self.home_btn, 0))
-        self.data_btn.clicked.connect(lambda: self.select_button(self.data_btn, 1))
-        self.fishnet_btn.clicked.connect(lambda: self.select_button(self.fishnet_btn, 2))
-        self.scene_btn.clicked.connect(lambda: self.select_button(self.scene_btn, 3))
-        self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 4))
-        self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 5))
-        self.change_detection_btn.clicked.connect(lambda: self.select_button(self.change_detection_btn, 6))  # 连接变化检测按钮信号
-        self.sample_making_btn.clicked.connect(lambda: self.select_button(self.sample_making_btn, 7))
-        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 8))
-        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 9))
+        # 删除数据获取按钮
+        # self.data_btn.clicked.connect(lambda: self.select_button(self.data_btn, 1))
+        self.fishnet_btn.clicked.connect(lambda: self.select_button(self.fishnet_btn, 1))
+        self.scene_btn.clicked.connect(lambda: self.select_button(self.scene_btn, 2))
+        self.segment_btn.clicked.connect(lambda: self.select_button(self.segment_btn, 3))
+        self.detection_btn.clicked.connect(lambda: self.select_button(self.detection_btn, 4))
+        self.change_detection_btn.clicked.connect(lambda: self.select_button(self.change_detection_btn, 5))  # 连接变化检测按钮信号
+        self.batch_btn.clicked.connect(lambda: self.select_button(self.batch_btn, 6))  # 连接批量处理按钮信号
+        self.help_btn.clicked.connect(lambda: self.select_button(self.help_btn, 7))
+        self.settings_btn.clicked.connect(lambda: self.select_button(self.settings_btn, 8))
     
     def select_button(self, button, page_index):
         """选择按钮，并切换对应的功能页面"""
         # 重置所有按钮状态
-        for btn in [self.home_btn, self.data_btn, self.fishnet_btn,
-                   self.scene_btn, self.segment_btn, self.detection_btn, self.change_detection_btn,
-                   self.sample_making_btn, self.help_btn, self.settings_btn]:
+        for btn in [self.home_btn, self.fishnet_btn, self.scene_btn, self.segment_btn, self.detection_btn, self.change_detection_btn, self.batch_btn, self.help_btn, self.settings_btn]:
             btn.setChecked(False)
         
         # 设置当前按钮为选中状态（如果不是None）

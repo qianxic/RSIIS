@@ -1,5 +1,10 @@
 import sys
 import os
+import warnings
+
+# 忽略所有警告
+warnings.filterwarnings("ignore")
+
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QCoreApplication, Qt
 
@@ -10,11 +15,10 @@ from ui.main_window_new import MainWindow
 from controller.event.fishnet_controller import FishnetController
 from controller.event.scene_controller import SceneController
 from controller.event.segment_controller import SegmentController
-from controller.event.detection_controller import DetectionController
-from controller.event.data_controller import DataController
-from controller.event.sample_making_controller import SampleMakingController
+from controller.event.object_detection_controller import ObjectDetectionController
 from controller.event.setting_controller import SettingController
 from controller.event.change_detection_controller import ChangeDetectionController
+from controller.event.batch_controller import BatchController
 
 
 # 设置Qt插件路径
@@ -37,33 +41,41 @@ os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(qt_plugin_path, 'platfo
 def main():
     """主程序入口点"""
     app = QApplication(sys.argv)
+    app.setStyle('Fusion')
+    
+    # 应用程序工作目录
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(app_dir)
     
     # 创建主窗口
     main_window = MainWindow()
     
-    # 创建各个页面的控制器实例
+    # 创建控制器实例
     fishnet_controller = FishnetController()
     scene_controller = SceneController()
     segment_controller = SegmentController()
-    detection_controller = DetectionController()
-    data_controller = DataController()
-    sample_making_controller = SampleMakingController()
+    detection_controller = ObjectDetectionController()
     setting_controller = SettingController()
     change_detection_controller = ChangeDetectionController()
+    batch_controller = BatchController()
     
-    # 先设置控制器的页面引用，再连接信号
+    # 初始化控制器
     fishnet_controller.setup(page=main_window.fishnet_page)
+    scene_controller.setup(page=main_window.scene_page)
+    segment_controller.setup(page=main_window.segment_page)
+    detection_controller.setup(page=main_window.detection_page)
+    setting_controller.setup(page=main_window.setting_page)
     change_detection_controller.setup(page=main_window.change_detection_page)
+    batch_controller.setup(page=main_window.batch_page)
     
     # 连接控制器和对应的UI页面
     main_window.fishnet_page.connect_signals(fishnet_controller)
     main_window.scene_page.connect_signals(scene_controller)
     main_window.segment_page.connect_signals(segment_controller)
     main_window.detection_page.connect_signals(detection_controller)
-    main_window.data_page.connect_signals(data_controller)
-    main_window.sample_making_page.connect_signals(sample_making_controller)
     main_window.setting_page.connect_signals(setting_controller)
     main_window.change_detection_page.connect_signals(change_detection_controller)
+    main_window.batch_page.connect_signals(batch_controller)
     
     # 显示主窗口
     main_window.show()
@@ -71,5 +83,6 @@ def main():
     # 启动应用程序事件循环
     sys.exit(app.exec())
 
+
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 
