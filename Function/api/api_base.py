@@ -33,7 +33,7 @@ class ApiBaseModel:
         try:
             # 导入API客户端模块
             from utils.api_client import ApiClient, ApiConfig
-            from utils.api_client.tasks import (
+            from utils.api_client.task_handlers import (
                 SegmentationTask, 
                 DetectionTask, 
                 ClassificationTask, 
