@@ -44,7 +44,7 @@ class HelpPage(QWidget):
         scroll_layout.addWidget(section_title1)
         
         # 添加可点击的场景分类图片
-        image_path1 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\scene_classification_process.png"
+        image_path1 = r"docs\demo_image\scene_classification_process.png"
         self.add_clickable_image(scroll_layout, image_path1, width=700)
         
         # 添加场景分类说明 (使用SelectableLabel使文本可选)
@@ -68,7 +68,7 @@ class HelpPage(QWidget):
         scroll_layout.addWidget(section_title2)
         
         # 添加可点击的语义分割图片
-        image_path2 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\DeepLab_segmentation_process.png"
+        image_path2 = r"docs\demo_image\DeepLab_segmentation_process.png"
         self.add_clickable_image(scroll_layout, image_path2, width=700)
         
         # 添加语义分割说明 (使用SelectableLabel使文本可选)
@@ -92,7 +92,7 @@ class HelpPage(QWidget):
         scroll_layout.addWidget(section_title3)
         
         # 添加可点击的目标检测图片
-        image_path3 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\yolo_detection_process.png"
+        image_path3 = r"docs\demo_image\yolo_detection_process.png"
         self.add_clickable_image(scroll_layout, image_path3, width=700)
         
         # 添加目标检测说明 (使用SelectableLabel使文本可选)
@@ -116,7 +116,7 @@ class HelpPage(QWidget):
         scroll_layout.addWidget(section_title4)
         
         # 添加可点击的变化检测图片
-        image_path4 = r"D:\VS_WORKBASE\rsiis\遥感影像智能解译系统V1.0\docs\demo_image\change_detection_process.png"
+        image_path4 = r"docs\demo_image\change_detection_process.png"
         self.add_clickable_image(scroll_layout, image_path4, width=700)
         
         # 添加变化检测说明 (使用SelectableLabel使文本可选)
